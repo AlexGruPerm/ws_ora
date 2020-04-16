@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script defer="defer">
+            document.addEventListener("DOMContentLoaded", function(){
+
+              document.getElementById("sendrq").addEventListener(
+              "click", (event) => {
+                funcOnClickSendRequestButton();
+              });
+
+              var timerId;
+
+              document.getElementById("repeat500").addEventListener( "click", (event) => {
+                 timerId = setInterval(() => funcOnClickSendRequestButton(), 500);
+              });
+
+              document.getElementById("repeat100").addEventListener( "click", (event) => {
+                 timerId = setInterval(() => funcOnClickSendRequestButton(), 100);
+              });
+
+              document.getElementById("repeat10").addEventListener( "click", (event) => {
+                 timerId = setInterval(() => funcOnClickSendRequestButton(), 10);
+              });
+
+              document.getElementById("stprep").addEventListener(
+              "click", (event) => {
+                setTimeout(() => { clearInterval(timerId);}, 100);
+              });
+
+            });
+
+            function postAjax(url, data, success) {
+                var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+                xhr.open('POST', url, true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState>3 && xhr.status==200) { success(xhr.responseText); }
+                };
+                var params = JSON.stringify(data);
+                xhr.send(params);
+                return xhr;
+            }
+
+            function funcOnClickSendRequestButton() {
+              console.log("Send request");
+                var postRqDataJson = document.getElementById("rq-json").innerText;
+                var data = JSON.parse(postRqDataJson);
+                console.log(data);
+                    postAjax('/dicts', data, function(data){
+                      document.getElementById("rs-json").innerHTML = data;
+                    });
+              }
+  </script>
+</head>
+<body>
+    <input type="submit" id="sendrq" value="Send post request to ws"></br></br>
+    <input type="submit" id="repeat500" value="Repeat post request each 500 ms."></br></br>
+    <input type="submit" id="repeat100" value="Repeat post request each 100 ms."></br></br>
+    <input type="submit" id="repeat10" value="Repeat post request each 10 ms."></br></br>
+    <input type="submit" id="stprep" value="STOP REPEAT">
+ </br></br>
+ <table border="1" height=300px cellspacing="0" cellpadding="0" style="table-layout: fixed; width=75%;">
+    <th>
+    <td width="50%" style="vertical-align: top;">
+        <div id="rq-div" contenteditable="true" style="height: 300px; overflow-y:scroll;">
+          <pre id="rq-json">
+            req_json_text
+          </pre>
+        </div>
+    </td>
+    <td width="50%" style="vertical-align: top;">
+        <div id="rs-div" contenteditable="true" style="height: 300px; overflow-y:scroll;">
+          <pre id="rs-json" style="white-space: pre-wrap;">
+            ws response here
+          </pre>
+        </div>
+    </td>
+    </th>
+ </table>
+</br>
+</body>
+</html>
