@@ -1,0 +1,13 @@
+val actorSystem: ZLayer[Any, Throwable, Has[ActorSystem]] =
+  ZLayer.fromManaged(Managed.make(Task(ActorSystem("Test")))(sys => Task.fromFuture(_ => sys.terminate()).either))
+
+  ZLayer.fromManaged
+
+  /**
+   * Constructs a layer from a managed resource.
+   */
+  def fromManaged[R, E, A: Tagged](m: ZManaged[R, E, A]): ZLayer[R, E, Has[A]] =
+
+Managed is a data structure that encapsulates the acquisition and the release of a resource.
+
+https://zio.dev/docs/datatypes/datatypes_managed

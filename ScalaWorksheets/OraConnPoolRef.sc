@@ -133,6 +133,7 @@ object Listener {
 
     }
 
+    //If you need finalization use ZLayer.fromManaged and put your finalizer in the release action of the Managed
     //#5
     def poolCache(implicit tag: Tagged[ListenAsZLayer.Service]
                 ): ZLayer[Any, Nothing, ListenAsZLayer] = {
@@ -156,14 +157,15 @@ object MyApp extends App {
   lazy val myenv: ZLayer[Any, Throwable, ZEnv with ListenAsZLayer] =
     ZEnv.live ++ ListenAsZLayer.poolCache
 
+
+
   val WsApp: List[String] => ZIO[ZEnv with ListenAsZLayer, Throwable, Unit] = args =>
     for {
-      //c1 <- ZLayer.fromManaged(Managed.make(ZIO.access[ListenAsZLayer](_.get)))(sys => Task.fromFuture(_ => sys.terminate()).either))
       c <- ZIO.access[ListenAsZLayer](_.get)
       _ <- c.setMaxPoolSize(20)
       //_ <- putStrLn(s" resChange = $resChange")
       //without blocking rate of parallel = cpu cores  * 2
-      _ <- blocking(ZIO.foreachPar(1 to 100){elm => c.testQuery(elm)})
+      _ <- blocking(ZIO.foreachPar(1 to 10){elm => c.testQuery(elm)})
       nb <- c.getConnectionPoolName
       _ <- putStrLn(s"BEFORE $nb")
       _ <- c.setConnectionPoolName("XXX")
