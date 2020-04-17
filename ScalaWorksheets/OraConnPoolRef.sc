@@ -18,9 +18,10 @@ final case class DbConfig(
 
 final case class ConnPoolProperties(
                                      ConnectionPoolName: String,
-                                     InitialPoolSize: Int,
-                                     MinPoolSize: Int,
-                                     MaxPoolSize: Int
+                                     InitialPoolSize: Int ,
+                                     MinPoolSize: Int ,
+                                     MaxPoolSize: Int,
+                                     ConnectionWaitTimeout: Int
                                    )
 
 /**
@@ -35,26 +36,15 @@ class OraConnectionPool(conf: DbConfig, props: ConnPoolProperties){
   pds.setUser(conf.username)
   pds.setPassword(conf.password)
   pds.setConnectionPoolName(props.ConnectionPoolName)
-  //4.4.4 Setting the Connection Wait Timeout
-  pds.setConnectionWaitTimeout(30)
+  pds.setConnectionWaitTimeout(props.ConnectionWaitTimeout)
   pds.setInitialPoolSize(props.InitialPoolSize)
+  // A connection pool always tries to return to the minimum pool size
   pds.setMinPoolSize(props.MinPoolSize)
+  //The maximum pool size property specifies the maximum number of available
+  // and borrowed (in use) connections that a pool maintains.
   pds.setMaxPoolSize(props.MaxPoolSize)
 
-
-  /*
-  (1 to props.MaxPoolSize).foreach{idx =>
-    {val c = pds.getConnection()
-      c.setClientInfo("OCSID.MODULE", "wsora_$idx");
-      c.setClientInfo("OCSID.ACTION", "xyz");
-    }
-  }
-  */
-
-  def closePoolConnections: Unit = {
-    val cnt: Int = pds.getAvailableConnectionsCount +
-                   pds.getBorrowedConnectionsCount
-    (1 to cnt)
+  def closePoolConnections: Unit = (1 to pds.getAvailableConnectionsCount + pds.getBorrowedConnectionsCount)
     .foreach(_ => {
       val c = pds.getConnection()
       println("closing this connection")
@@ -62,7 +52,6 @@ class OraConnectionPool(conf: DbConfig, props: ConnPoolProperties){
       c.close()
     }
     )
-  }
 
 }
 
@@ -133,18 +122,27 @@ object Listener {
 
     }
 
-    //If you need finalization use ZLayer.fromManaged and put your finalizer in the release action of the Managed
-    //#5
-    def poolCache(implicit tag: Tagged[ListenAsZLayer.Service]
-                ): ZLayer[Any, Nothing, ListenAsZLayer] = {
-      ZLayer.fromEffect[Any,
-        Nothing,
-        ListenAsZLayer.Service
-      ]{
-        val dbconf = DbConfig("10.127.24.11", 1521, "test", "MSK_ARM_LEAD", "MSK_ARM_LEAD")
-        val cpp = ConnPoolProperties("ChangeListener",3,3,3)
-        Ref.make(new OraConnectionPool(dbconf,cpp)).map(cp => new poolCache(cp))
-      }
+    /**
+     * If you need finalization use ZLayer.fromManaged and put your finalizer in the release action of the Managed.
+     * We use it to close all connections in pool if exception raising.
+     * java.sql.SQLException: Исключение при получении соединения:
+     * oracle.ucp.UniversalConnectionPoolException: Все соединения из универсального пула соединений заняты
+     * We need adjust pool to eliminate this cases, use MaxPoolSize and ConnectionWaitTimeout(seconds)
+    */
+    def poolCache(implicit tag: Tagged[ListenAsZLayer.Service]): ZLayer[Any, Nothing, ListenAsZLayer] = {
+      val dbconf = DbConfig("10.127.24.11", 1521, "test", "MSK_ARM_LEAD", "MSK_ARM_LEAD")
+      val cpp = ConnPoolProperties(
+        ConnectionPoolName = "ChangeListener",
+        InitialPoolSize = 1,
+        MinPoolSize = 3,
+        MaxPoolSize = 10,
+        ConnectionWaitTimeout = 10
+      )
+      val mr: ZManaged[Any, Nothing, ListenAsZLayer.Service] =
+        ZManaged.make(
+          Ref.make(new OraConnectionPool(dbconf, cpp)).map(cp => new poolCache(cp))
+        )(_.closeAll)
+      ZLayer.fromManaged(mr)
     }
 
   }
@@ -157,15 +155,13 @@ object MyApp extends App {
   lazy val myenv: ZLayer[Any, Throwable, ZEnv with ListenAsZLayer] =
     ZEnv.live ++ ListenAsZLayer.poolCache
 
-
-
   val WsApp: List[String] => ZIO[ZEnv with ListenAsZLayer, Throwable, Unit] = args =>
     for {
       c <- ZIO.access[ListenAsZLayer](_.get)
-      _ <- c.setMaxPoolSize(20)
+      _ <- c.setMaxPoolSize(5)
       //_ <- putStrLn(s" resChange = $resChange")
       //without blocking rate of parallel = cpu cores  * 2
-      _ <- blocking(ZIO.foreachPar(1 to 10){elm => c.testQuery(elm)})
+      _ <- blocking(ZIO.foreachPar(1 to 100){elm => c.testQuery(elm)})
       nb <- c.getConnectionPoolName
       _ <- putStrLn(s"BEFORE $nb")
       _ <- c.setConnectionPoolName("XXX")
@@ -174,7 +170,7 @@ object MyApp extends App {
       _ <- putStrLn(s"AFTER $na")
       currMaxPoolSize <- c.getMaxPoolSize
       _ <- putStrLn(s" getMaxPoolSize = $currMaxPoolSize")
-     _ <- c.closeAll
+    // _ <- c.closeAll
     } yield ()
 
   def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
