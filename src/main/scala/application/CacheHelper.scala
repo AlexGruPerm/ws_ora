@@ -30,8 +30,8 @@ object CacheHelper {
    * Search Entity in Cache by tablename in  and remove it
    */
   private val removeFromCacheByRefTable: String => ZIO[ZEnvLogCache, Throwable, Unit] = tableName =>
-    for {
-      cache <- ZIO.access[CacheManager](_.get)
+    for {cache <- ZIO.access[CacheManager](_.get)
+
       cv <- cache.getCacheValue
       _ <- log.info(s"All keys = ${cv.dictsMap.keySet}")
       foundKeys: Seq[Int] = hashKeysForRemove(cv.dictsMap, tableName)

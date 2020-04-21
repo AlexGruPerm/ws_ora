@@ -1,17 +1,19 @@
 import zio._
 import zio.console._
-import zio.config.magnolia.DeriveConfigDescriptor.descriptor
-import zio.config._
+import zio.config.magnolia.DeriveConfigDescriptor._
 import zio.ZLayer._
 import zio.config.Config
+import zio.config.typesafe.TypesafeConfig
+import zio.config.typesafe.TypeSafeConfigSource
 import zio.console.Console
 import zio.{App, ZEnv, ZIO}
+//import zio.config.Config
 
-/*
+
 final case class ApiConfig(endpoint: String, port: Int)
 final case class DbConfig(
                            ip: String,
-                           port: Int = 1521,
+                           port: Int = 1527,
                            sid: String,
                            username: String,
                            password: String
@@ -23,26 +25,31 @@ final case class UcpConfig(
                             MaxPoolSize: Int,
                             ConnectionWaitTimeout: Int
                           )
-final case class WsConfig(api: ApiConfig, dbConfig: DbConfig, ucpcfg: UcpConfig)
-*/
+final case class WsConfig(api: ApiConfig, dbconf: DbConfig, ucpconf: UcpConfig)
 
+/*
 final case class WsConfig(
                            ip: String,
-                           port: Int = 1521,
+                           port: Int = 1525,
                            sid: String,
                            username: String,
                            password: String
                          )
+*/
 
 val wsConfigAutomatic = descriptor[WsConfig]
 
-val configLayer = Config.fromPropertiesFile("C:\\ws_ora\\src\\main\\resources\\application.conf", wsConfigAutomatic)
+val configLayer :Layer[Throwable, config.Config[WsConfig]] =
+  TypesafeConfig.fromHoconFile(new java.io.File("C:\\ws_ora\\src\\main\\resources\\application.conf"),
+    wsConfigAutomatic)
 
 val finalExecution: ZIO[Console with Config[WsConfig], Nothing, Unit] =
   for {
-    wsCommConfig <- config[WsConfig]
-    _         <- putStrLn(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ")
-    _         <- putStrLn(s" DB ip = ${wsCommConfig.ip}")
+    wsCommConfig <- ZIO.access[Config[WsConfig]](_.get)
+    _         <- putStrLn(" ~~~~~~~~~~~~~~~~~ DB ~~~~~~~~~~~~~~~~~~~~~ ")
+    _         <- putStrLn(s" sid  = ${wsCommConfig.dbconf.sid}")
+    _         <- putStrLn(s" ip   = ${wsCommConfig.dbconf.ip}")
+    _         <- putStrLn(s" port = ${wsCommConfig.dbconf.port}")
     _         <- putStrLn(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ")
   } yield ()
 

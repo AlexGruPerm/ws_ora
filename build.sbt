@@ -9,28 +9,29 @@ lazy val Versions = new {
   val akkaHttp  = "10.1.10"
   val circeVers = "0.12.3"
   val logbackVers = "1.2.3"
-  val pgVers = "42.2.5"
+  //val pgVers = "42.2.5"
   val zioVers = "1.0.0-RC18-2"
   val zioConf = "1.0.0-RC16-2"
   val magnoliaVersion = "1.0.0-RC16-2"
-  val zioConfTypeSafe = "1.0.0-RC16-2"
+  val zioConfTypeSafe =  "1.0.0-RC16"//"1.0.0-RC16-2"
   val zioLog = "0.2.5"
   val zioLogSlf4j = "0.2.5"
   val dbcp2Vers = "2.7.0"
   val jschVers = "0.1.55"
-  val typeSefeConf = "1.4.0"
+  //val typeSefeConf = "1.4.0"
 }
 
 scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked")
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
-  Resolver.typesafeRepo("releases"),
   Resolver.bintrayRepo("websudos", "oss-releases"),
   Resolver.sonatypeRepo("releases"),
   Resolver.sonatypeRepo("public")
+  //Resolver.typesafeRepo("releases"),
 )
 
+resolvers += Classpaths.typesafeReleases
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 //paradise for using circe annotations, f.e. @JsonCodec case class DbErrorDesc
@@ -38,13 +39,14 @@ addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.fu
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % Versions.logbackVers,
-  "com.typesafe" % "config" % Versions.typeSefeConf,
-  "org.postgresql" % "postgresql" % Versions.pgVers,
+ // "com.typesafe" % "config" % Versions.typeSefeConf,
+ // "org.postgresql" % "postgresql" % Versions.pgVers,
   "dev.zio" %% "zio" % Versions.zioVers,
-  "dev.zio" %% "zio-config" % Versions.zioConf,
   "dev.zio" % "zio-config-magnolia_2.12" % Versions.magnoliaVersion,
+  "dev.zio" % "zio-config-typesafe_2.12" % "1.0.0-RC16",
+ // "dev.zio" %% "zio-config-typesafe" % "1.0.0-RC16-2",
   "dev.zio" %% "zio-config-refined" % Versions.zioConf,
-  "dev.zio" %% "zio-config-typesafe" % Versions.zioConfTypeSafe,
+  "dev.zio" %% "zio-config" % Versions.zioConf,
   "dev.zio" %% "zio-logging" % Versions.zioLog,
   "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogSlf4j,
   "org.apache.commons" % "commons-dbcp2" % Versions.dbcp2Vers
