@@ -1,4 +1,4 @@
-package envs
+package env
 
 import data.{Cache, CacheEntity, DictDataRows}
 import zio.{Has, Ref, Tagged, UIO, ZLayer}

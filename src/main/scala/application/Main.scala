@@ -1,34 +1,46 @@
 package application
 
-import envs.ConfAsZLayer.Configuration
-import zio.{App, Layer, Runtime, Task, UIO, ZEnv, ZIO}
-import envs.EnvContainer.ZEnvConfLogCache
+import application.Main.checkArgs
+import env.CacheAsZLayer.CacheManager
+import env.ConfigLayerObject.configLayer
+import zio.{App, Layer, Runtime, Task, UIO, ZEnv, ZIO, ZLayer}
+import env.EnvContainer._
+import wsconfiguration.ConfClasses.WsConfig
+//import wsconfiguration.ConfClasses.WsConfig
+import zio.config.Config
 import zio.logging._
-import zio.console.putStrLn
+import zio.console.{Console, putStrLn}
+import scala.language.higherKinds
+
 
 object Main extends App {
 
-  private def checkArgs: List[String] => ZIO[ZEnv, Throwable, Unit] = args => for {
-    checkRes <- if (args.size<0/*args.isEmpty*/) {
-      Task.fail(new IllegalArgumentException("Need config file as parameter."))
-    }
-    else {
+  private def checkArgs(args: List[String]): Task[Unit] =
+    if (args.isEmpty) {
+      Task.fail(new IllegalArgumentException("[WS-0001] Need input config file as parameter."))
+    } else {
       UIO.succeed(())
     }
-  } yield checkRes
 
   private def wsApp: List[String] => ZIO[ZEnvConfLogCache, Throwable, Unit] = args =>
     for {
       _ <- log.info("Web service starting")
-      _ <- checkArgs(args)
-      cfg <-  ZIO.access[Configuration](_.get.load(args.head))
+      cfg <- ZIO.access[Config[WsConfig]](_.get)
+      _         <- log.info(" ~~~~~~~~~~~~~~~~~ DB ~~~~~~~~~~~~~~~~~~~~~ ")
+      _         <- log.info(s" sid  = ${cfg.dbconf.sid}")
+      _         <- log.info(s" ip   = ${cfg.dbconf.ip}")
+      _         <- log.info(s" port = ${cfg.dbconf.port}")
+      _         <- log.info(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ")
       //cfg <-  ZIO.access[Configuration](_.get.load("C:\\ws_fphp\\src\\main\\resources\\application.conf"))
-      res <- WebService.startService(cfg)
+      //res <- WebService.startService(cfg)
       _ <- log.info("Web service stopping")
-    } yield res
+    } yield ()//res
 
+
+  // C:\ws_ora\src\main\resources\application.conf
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
-    val appLayer: Layer[Nothing, ZEnvConfLogCache] = ZEnv.live >>> envs.EnvContainer.ZEnvConfLogCacheLayer
+    val argsCheckResult = Runtime.global.unsafeRun(checkArgs(args))
+    val appLayer = ZEnv.live >>> env.EnvContainer.ZEnvConfLogCacheLayer(args.head)
     val rt: Runtime.Managed[ZEnvConfLogCache] = Runtime.unsafeFromLayer(appLayer)
     ZIO(rt.unsafeRun(wsApp(args))).foldM(throwable => putStrLn(s"Error: ${throwable.getMessage}") *>
       ZIO.foreach(throwable.getStackTrace) { sTraceRow =>
@@ -36,6 +48,9 @@ object Main extends App {
       } as 1,
       _ => putStrLn(s"Success exit of application.") as 0
     )
+
   }
+
+
 
 }

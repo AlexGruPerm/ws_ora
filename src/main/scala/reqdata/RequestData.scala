@@ -10,13 +10,10 @@ import io.circe.generic.JsonCodec
  * }
  *
 */
-/*
-@JsonCodec
-case class RefTable(tablename: String)
-*/
 
 @JsonCodec
-case class Dict(name: String,
+case class Dict(
+                 name: String,
                 db:String,
                 proc: String,
                 reftables: Option[Seq[String]]
@@ -26,12 +23,14 @@ case class Dict(name: String,
  * for all dicts requested and additional information.
 */
 @JsonCodec
-case class RequestData(user_session: String,
+case class RequestData(
+                        user_session: String,
                        cont_encoding_gzip_enabled: Int, //use gzip or not for response json (Content-Encoding)
                        thread_pool: String, //block or sync
                        request_timeout_ms: Double, //client can set request timeout, after t.o. return json response with error
                        cache_live_time: Option[Long],//0 - no cache, otherwise set live time for each dict in cache. todo: Future set individual.
-                       dicts: Seq[Dict])
+                       dicts: Seq[Dict]
+                      )
 
 
 

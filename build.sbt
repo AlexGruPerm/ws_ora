@@ -9,16 +9,14 @@ lazy val Versions = new {
   val akkaHttp  = "10.1.10"
   val circeVers = "0.12.3"
   val logbackVers = "1.2.3"
-  //val pgVers = "42.2.5"
   val zioVers = "1.0.0-RC18-2"
   val zioConf = "1.0.0-RC16-2"
   val magnoliaVersion = "1.0.0-RC16-2"
-  val zioConfTypeSafe =  "1.0.0-RC16"//"1.0.0-RC16-2"
+  val zioConfTypeSafe =  "1.0.0-RC16"
   val zioLog = "0.2.5"
   val zioLogSlf4j = "0.2.5"
   val dbcp2Vers = "2.7.0"
   val jschVers = "0.1.55"
-  //val typeSefeConf = "1.4.0"
 }
 
 scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked")
@@ -28,7 +26,6 @@ resolvers ++= Seq(
   Resolver.bintrayRepo("websudos", "oss-releases"),
   Resolver.sonatypeRepo("releases"),
   Resolver.sonatypeRepo("public")
-  //Resolver.typesafeRepo("releases"),
 )
 
 resolvers += Classpaths.typesafeReleases
@@ -39,12 +36,9 @@ addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.fu
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % Versions.logbackVers,
- // "com.typesafe" % "config" % Versions.typeSefeConf,
- // "org.postgresql" % "postgresql" % Versions.pgVers,
   "dev.zio" %% "zio" % Versions.zioVers,
   "dev.zio" % "zio-config-magnolia_2.12" % Versions.magnoliaVersion,
-  "dev.zio" % "zio-config-typesafe_2.12" % "1.0.0-RC16",
- // "dev.zio" %% "zio-config-typesafe" % "1.0.0-RC16-2",
+  "dev.zio" % "zio-config-typesafe_2.12" % Versions.zioConfTypeSafe,
   "dev.zio" %% "zio-config-refined" % Versions.zioConf,
   "dev.zio" %% "zio-config" % Versions.zioConf,
   "dev.zio" %% "zio-logging" % Versions.zioLog,

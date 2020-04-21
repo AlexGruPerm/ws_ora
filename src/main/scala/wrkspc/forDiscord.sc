@@ -4,7 +4,7 @@ import application.ReqResp
 import application.ReqResp.{route404, routeDicts, routeGetDebug, routeGetFavicon}
 import confs.DbConfig
 import data.Cache
-import envs.EnvContainer.ZEnvLog
+import env.EnvContainer.ZEnvLog
 import zio.{Ref, Runtime, ZIO}
 import scala.concurrent.Future
 
@@ -21,6 +21,6 @@ Future[HttpResponse] = {
     }
   }
   Runtime.default.unsafeRunToFuture(
-    responseFuture.provideLayer(zio.ZEnv.live >>> envs.EnvContainer.ZEnvLogLayer)
+    responseFuture.provideLayer(zio.ZEnv.live >>> env.EnvContainer.ZEnvLogLayer)
   )
 }

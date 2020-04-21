@@ -1,3 +1,4 @@
+import java.io.File
 import zio._
 import zio.console._
 import zio.config.magnolia.DeriveConfigDescriptor._
@@ -8,13 +9,15 @@ import zio.console.Console
 import zio.{App, ZEnv, ZIO}
 
 final case class ApiConfig(endpoint: String, port: Int)
+
 final case class DbConfig(
                            ip: String,
-                           port: Int = 1527,
+                           port: Int = 1521,
                            sid: String,
                            username: String,
                            password: String
                          )
+
 final case class UcpConfig(
                             ConnectionPoolName: String,
                             InitialPoolSize: Int ,
@@ -22,17 +25,13 @@ final case class UcpConfig(
                             MaxPoolSize: Int,
                             ConnectionWaitTimeout: Int
                           )
-final case class WsConfig(api: ApiConfig, dbconf: DbConfig, ucpconf: UcpConfig)
 
-type argLayer = Has[String]
+final case class WsConfig(api: ApiConfig, dbconf: DbConfig, ucpconf: UcpConfig)
 
 val wsConfigAutomatic = descriptor[WsConfig]
 
-val configLayer: ZLayer[argLayer, Throwable, config.Config[WsConfig]] = {
-  val confLayerRes :ZLayer[argLayer, Throwable, config.Config[WsConfig]]
-  = TypesafeConfig.fromHoconFile(new java.io.File("C:\\ws_ora\\src\\main\\resources\\application.conf"), wsConfigAutomatic)
-  confLayerRes
-}
+def configLayer(confFileName: String): Layer[Throwable, config.Config[WsConfig]] =
+  TypesafeConfig.fromHoconFile(new java.io.File(confFileName), wsConfigAutomatic)
 
 val finalExecution: ZIO[Console with Config[WsConfig], Nothing, Unit] =
   for {
@@ -46,13 +45,9 @@ val finalExecution: ZIO[Console with Config[WsConfig], Nothing, Unit] =
 
 
 object MyApp extends App {
-
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
-    //send arg into argLayer here, or build argLayer here with args.
     val args_head: String = "C:\\ws_ora\\src\\main\\resources\\application.conf"
-    val argLayer: Layer[Nothing,Has[String]] = ZLayer.succeed(args_head)
-
-    val appLayer = ZEnv.live ++ (argLayer >>> configLayer)
+    val appLayer = ZEnv.live ++ configLayer(args_head)
     val prg = for {
       _  <- finalExecution.provideCustomLayer(appLayer)
     } yield ()
