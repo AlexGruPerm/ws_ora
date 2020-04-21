@@ -5,7 +5,10 @@ package wsconfiguration
 */
 object ConfClasses {
 
-  final case class ApiConfig(endpoint: String, port: Int)
+  final case class ApiConfig(
+                              endpoint: String,
+                              port: Int
+                            )
 
   final case class DbConfig(
                              ip: String,
@@ -23,6 +26,10 @@ object ConfClasses {
                               ConnectionWaitTimeout: Int
                             )
 
-  final case class WsConfig(api: ApiConfig, dbconf: DbConfig, ucpconf: UcpConfig)
+  final case class WsConfig(
+                             api: ApiConfig,
+                             dbconf: DbConfig,
+                             ucpconf: UcpConfig
+                           )
 
 }
