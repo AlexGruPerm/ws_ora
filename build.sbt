@@ -11,11 +11,13 @@ lazy val Versions = new {
   val logbackVers = "1.2.3"
   val pgVers = "42.2.5"
   val zioVers = "1.0.0-RC18-2"
+  val zioConf = "1.0.0-RC16-2"
+  val magnoliaVersion = "1.0.0-RC16-2"
+  val zioConfTypeSafe = "1.0.0-RC16-2"
   val zioLog = "0.2.5"
   val zioLogSlf4j = "0.2.5"
   val dbcp2Vers = "2.7.0"
   val jschVers = "0.1.55"
-  val zioPureConf = "0.12.3"
   val typeSefeConf = "1.4.0"
 }
 
@@ -39,9 +41,12 @@ libraryDependencies ++= Seq(
   "com.typesafe" % "config" % Versions.typeSefeConf,
   "org.postgresql" % "postgresql" % Versions.pgVers,
   "dev.zio" %% "zio" % Versions.zioVers,
+  "dev.zio" %% "zio-config" % Versions.zioConf,
+  "dev.zio" % "zio-config-magnolia_2.12" % Versions.magnoliaVersion,
+  "dev.zio" %% "zio-config-refined" % Versions.zioConf,
+  "dev.zio" %% "zio-config-typesafe" % Versions.zioConfTypeSafe,
   "dev.zio" %% "zio-logging" % Versions.zioLog,
   "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogSlf4j,
-  "com.github.pureconfig" %% "pureconfig" % Versions.zioPureConf,
   "org.apache.commons" % "commons-dbcp2" % Versions.dbcp2Vers
 )
 
