@@ -7,7 +7,6 @@ import zio._
 import zio.ZLayer
 import zio.console._
 import oracle.ucp.jdbc.{PoolDataSourceFactory, ValidConnection}
-import pureconfig.ConfigSource
 import zio.blocking.blocking
 import zio.clock.Clock
 import zio.logging.Logging
@@ -33,7 +32,7 @@ final case class UcpConfig(
 
 final case class Config(api: ApiConfig, dbConfig: DbConfig, ucpcfg: UcpConfig)
 
-import pureconfig.generic.auto._
+
 object ObjectConfZLayer {
   type Configuration = zio.Has[Configuration.Service]
   object Configuration {
@@ -93,6 +92,8 @@ class OraConnectionPool(conf: DbConfig, props: UcpConfig){
 
 import ObjectConfZLayer._
 //--------------------------------------------------------------------------------------------------------
+
+
 //Universal Connection Pool
 object Ucp {
   //#1

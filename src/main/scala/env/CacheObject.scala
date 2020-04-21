@@ -3,13 +3,12 @@ package env
 import data.{Cache, CacheEntity, DictDataRows}
 import zio.{Has, Ref, Tagged, UIO, ZLayer}
 
-object CacheAsZLayer {
-  //#1
+object CacheObject {
+
   type CacheManager = Has[CacheManager.Service]
-  //#2
+
   object CacheManager {
 
-    //#3
     trait Service {
       def addHeartbeat: UIO[Unit]
       def getCacheValue: UIO[Cache]
@@ -18,7 +17,6 @@ object CacheAsZLayer {
       def remove(keys: Seq[Int]): UIO[Unit]
     }
 
-    //#4
     final class refCache(ref: Ref[Cache]) extends CacheManager.Service {
       override def addHeartbeat: UIO[Unit] =
         ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 1))
@@ -38,7 +36,6 @@ object CacheAsZLayer {
           dictsMap = cvu.dictsMap -- keys))
     }
 
-    //#5
     def refCache(implicit tag: Tagged[CacheManager.Service]
                       ): ZLayer[Any, Nothing, CacheManager] = {
       ZLayer.fromEffect[Any,

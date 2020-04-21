@@ -57,11 +57,11 @@ class OraConnectionPool(conf: DbConfig, props: ConnPoolProperties){
 
 //--------------------------------------------------------------------------------------------------------
 
-object Listener {
+object Ucp {
   //#1
-  type ListenAsZLayer = Has[ListenAsZLayer.Service]
+  type UcpZLayer = Has[UcpZLayer.Service]
   //#2
-  object ListenAsZLayer {
+  object UcpZLayer {
 
     //#3
     trait Service {
@@ -75,7 +75,7 @@ object Listener {
     }
 
     //#4
-    final class poolCache(ref: Ref[OraConnectionPool]) extends ListenAsZLayer.Service {
+    final class poolCache(ref: Ref[OraConnectionPool]) extends UcpZLayer.Service {
       override def getConnection: UIO[Connection] = ref.get.map(cp => cp.pds.getConnection())
 
       override def setMaxPoolSize(newMaxPoolSize: Int): Task[Int] = {
@@ -129,7 +129,7 @@ object Listener {
      * oracle.ucp.UniversalConnectionPoolException: Все соединения из универсального пула соединений заняты
      * We need adjust pool to eliminate this cases, use MaxPoolSize and ConnectionWaitTimeout(seconds)
     */
-    def poolCache(implicit tag: Tagged[ListenAsZLayer.Service]): ZLayer[Any, Nothing, ListenAsZLayer] = {
+    def poolCache(implicit tag: Tagged[UcpZLayer.Service]): ZLayer[Any, Nothing, UcpZLayer] = {
       val dbconf = DbConfig("10.127.24.11", 1521, "test", "MSK_ARM_LEAD", "MSK_ARM_LEAD")
       val cpp = ConnPoolProperties(
         ConnectionPoolName = "ChangeListener",
@@ -138,7 +138,7 @@ object Listener {
         MaxPoolSize = 10,
         ConnectionWaitTimeout = 10
       )
-      val mr: ZManaged[Any, Nothing, ListenAsZLayer.Service] =
+      val mr: ZManaged[Any, Nothing, UcpZLayer.Service] =
         ZManaged.make(
           Ref.make(new OraConnectionPool(dbconf, cpp)).map(cp => new poolCache(cp))
         )(_.closeAll)
@@ -148,16 +148,16 @@ object Listener {
   }
 }
 
-import Listener._
+import Ucp._
 import zio.duration._
 object MyApp extends App {
 
-  lazy val myenv: ZLayer[Any, Throwable, ZEnv with ListenAsZLayer] =
-    ZEnv.live ++ ListenAsZLayer.poolCache
+  lazy val myenv: ZLayer[Any, Throwable, ZEnv with UcpZLayer] =
+    ZEnv.live ++ UcpZLayer.poolCache
 
-  val WsApp: List[String] => ZIO[ZEnv with ListenAsZLayer, Throwable, Unit] = args =>
+  val WsApp: List[String] => ZIO[ZEnv with UcpZLayer, Throwable, Unit] = args =>
     for {
-      c <- ZIO.access[ListenAsZLayer](_.get)
+      c <- ZIO.access[UcpZLayer](_.get)
       _ <- c.setMaxPoolSize(5)
       //_ <- putStrLn(s" resChange = $resChange")
       //without blocking rate of parallel = cpu cores  * 2
