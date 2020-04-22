@@ -17,14 +17,14 @@ object Ucp {
     trait Service {
       def getConnection: UIO[Connection]
       def setMaxPoolSize(newMaxPoolSize: Int): Task[Int]
-      def getMaxPoolSize:  ZIO[WsConfig, Nothing, Int]   // UIO[Int]
+      def getMaxPoolSize: UIO[Int]
       def setConnectionPoolName(name: String): UIO[Unit]
       def getConnectionPoolName: UIO[String]
       def closeAll: UIO[Unit]
       def testQuery(i: Int): UIO[Unit]
     }
 
-    final class poolCache(ref: Ref[ZIO[WsConfig, Nothing, OraConnectionPool]/*Ref[OraConnectionPool]*/) extends UcpZLayer.Service {
+    final class poolCache(ref: Ref[OraConnectionPool]) extends UcpZLayer.Service {
       override def getConnection: UIO[Connection] = ref.get.map(cp => cp.pds.getConnection())
 
       override def setMaxPoolSize(newMaxPoolSize: Int): Task[Int] = {
@@ -36,11 +36,11 @@ object Ucp {
       }
 
       /*
-      override def getMaxPoolSize: UIO[Int] = ref.get.map(cp => cp.pds.getMaxPoolSize)
+        override def getMaxPoolSize: ZIO[WsConfig, Nothing, Int] = ref.get.map(cp => cp.map(c => c.pds.getMaxPoolSize)).flatten
       */
-      override def getMaxPoolSize: ZIO[WsConfig, Nothing, Int] = ref.get.map(cp => cp.map(c => c.pds.getMaxPoolSize)).flatten
 
-
+      override def getMaxPoolSize: UIO[Int] =
+        ref.get.map(cp => cp.pds.getMaxPoolSize)
 
       override def setConnectionPoolName(name: String): UIO[Unit] =
         ref.get.map(cp => cp.pds.setConnectionPoolName(name))
