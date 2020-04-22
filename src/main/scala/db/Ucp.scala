@@ -3,6 +3,7 @@ package db
 import java.sql.Connection
 
 import Ucp.UcpZLayer
+import db.Ucp.UcpZLayer.poolCache
 import zio.config.Config
 import env.EnvContainer.ZenvLogConfCache_
 import wsconfiguration.ConfClasses.WsConfig
@@ -16,11 +17,17 @@ object Ucp {
 
     trait Service {
       def getConnection: UIO[Connection]
+
       def setMaxPoolSize(newMaxPoolSize: Int): Task[Int]
+
       def getMaxPoolSize: UIO[Int]
+
       def setConnectionPoolName(name: String): UIO[Unit]
+
       def getConnectionPoolName: UIO[String]
+
       def closeAll: UIO[Unit]
+
       def testQuery(i: Int): UIO[Unit]
     }
 
@@ -28,7 +35,8 @@ object Ucp {
       override def getConnection: UIO[Connection] = ref.get.map(cp => cp.pds.getConnection())
 
       override def setMaxPoolSize(newMaxPoolSize: Int): Task[Int] = {
-        ref.update(cp => {cp.pds.setMaxPoolSize(newMaxPoolSize)
+        ref.update(cp => {
+          cp.pds.setMaxPoolSize(newMaxPoolSize)
           cp.pds.setMinPoolSize(newMaxPoolSize)
           cp
         }
@@ -52,7 +60,7 @@ object Ucp {
         ref.get.map(_.closePoolConnections)
 
       override def testQuery(i: Int): UIO[Unit] = {
-        ref.get.map(cp => cp.pds.getConnection()).map{ con =>
+        ref.get.map(cp => cp.pds.getConnection()).map { con =>
           val stmt = con.createStatement()
           con.setClientInfo("OCSID.ACTION", i.toString)
           val rs = stmt.executeQuery(
@@ -68,7 +76,7 @@ object Ucp {
               cname => (cname._1, rs.getString(cname._1))
             )
           }.toList
-          rows.foreach(r => println("["+i+"]    "+r))
+          rows.foreach(r => println("[" + i + "]    " + r))
         }
       }
 
@@ -77,36 +85,48 @@ object Ucp {
 
     /**
      * If you need finalization use ZLayer.fromManaged and put your finalizer in the release action of the Managed.
-     * We use it to close all connections in pool if exception raising.
+     * We use it to close all connections in pool if exception is raising.
      * java.sql.SQLException: Исключение при получении соединения:
      * oracle.ucp.UniversalConnectionPoolException: Все соединения из универсального пула соединений заняты
      * We need adjust pool to eliminate this cases, use MaxPoolSize and ConnectionWaitTimeout(seconds)
      */
+    /**
+     * No, I don't think you want to have a ZIO inside a Ref.
+     * if you have your value inside an effect you can just do effect.map(ref.set)
+     */
+
     def poolCache(implicit tag: Tagged[UcpZLayer.Service]): ZLayer[ZenvLogConfCache_, Throwable, UcpZLayer] = {
-      val cfg: URIO[WsConfig,WsConfig] = ZIO.environment[WsConfig]
-      val mr: ZManaged[Any, Nothing, UcpZLayer.Service] = ZManaged.make(
-          Ref.make(cfg.map(wsc => new OraConnectionPool(wsc.dbconf, wsc.ucpconf))).map(cp => new poolCache(cp))
-        )(_.closeAll)
-      ZLayer.fromManaged(mr)
+
+      val zm: ZIO[WsConfig, Throwable, ZManaged[Any, Throwable, UcpZLayer.Service]] =
+        for {
+          conf <- ZIO.environment[WsConfig]
+          cpool <- Ref.make(new OraConnectionPool(conf.dbconf, conf.ucpconf))
+          ucpL = ZIO(new poolCache(cpool))
+          release: (poolCache => zio.ZIO[Any,Nothing,Any]) = (p: poolCache) => p.closeAll
+          zm: ZManaged[Any, Throwable, UcpZLayer.Service] = ZManaged.make(ucpL)(release)
+        } yield zm
+
+      val managedConnPool: ZManaged[Any, Throwable, UcpZLayer.Service] = ???
+
+      ZLayer.fromManaged(managedConnPool)
     }
 /*
-    Type mismatch.
-    Required: zio.Ref[OraConnectionPool]
-    Found: zio.Ref[ZIO[WsConfig, Nothing, OraConnectionPool]]
+Error:(106, 81) type mismatch;
+ found   : zio.ZIO[poolCache,Throwable,Unit]
+ required: poolCache => zio.ZIO[Any,Nothing,Any]
+          zm: ZManaged[Any, Throwable, UcpZLayer.Service] = ZManaged.make(ucpL)(release)
     */
 
-    /*
-
-    /*
-      val mr: ZManaged[Any, Nothing, UcpZLayer.Service] =
-        ZManaged.make(
-          Ref.make(
-            ZIO.access[Config[WsConfig]](_.get).map(cfg => new OraConnectionPool(cfg.dbconf, cfg.ucpconf))
-          ).map(cp => new poolCache(Task(cp)))
-        )(_.closeAll)
+      /*
+original
+  val mr: ZManaged[Any, Nothing, UcpZLayer.Service] =
+    ZManaged.make(
+      Ref.make(
+        ZIO.access[Config[WsConfig]](_.get).map(cfg => new OraConnectionPool(cfg.dbconf, cfg.ucpconf))
+      ).map(cp => new poolCache(Task(cp)))
+    )(_.closeAll)
 */
 
-    */
-
   }
+
 }
