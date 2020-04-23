@@ -7,7 +7,7 @@ import db.Ucp.UcpZLayer.poolCache
 import zio.config.Config
 import env.EnvContainer.ZenvLogConfCache_
 import wsconfiguration.ConfClasses.WsConfig
-import zio.{Has, Ref, Tagged, Task, UIO, URIO, ZIO, ZLayer, ZManaged}
+import zio.{Has, Ref, Runtime, Tagged, Task, UIO, URIO, ZIO, ZLayer, ZManaged, config}
 
 object Ucp {
 
@@ -94,28 +94,51 @@ object Ucp {
      * No, I don't think you want to have a ZIO inside a Ref.
      * if you have your value inside an effect you can just do effect.map(ref.set)
      */
-
+      /*
     def poolCache(implicit tag: Tagged[UcpZLayer.Service]): ZLayer[ZenvLogConfCache_, Throwable, UcpZLayer] = {
 
       val zm: ZIO[WsConfig, Throwable, ZManaged[Any, Throwable, UcpZLayer.Service]] =
         for {
           conf <- ZIO.environment[WsConfig]
           cpool <- Ref.make(new OraConnectionPool(conf.dbconf, conf.ucpconf))
-          ucpL = ZIO(new poolCache(cpool))
-          release: (poolCache => zio.ZIO[Any,Nothing,Any]) = (p: poolCache) => p.closeAll
-          zm: ZManaged[Any, Throwable, UcpZLayer.Service] = ZManaged.make(ucpL)(release)
+          acquire = ZIO(new poolCache(cpool))
+          release: (UcpZLayer.Service => zio.ZIO[Any,Nothing,Any]) = (pc: UcpZLayer.Service) => pc.closeAll
+          zm: ZManaged[Any, Throwable, UcpZLayer.Service] = ZManaged.make(acquire)(release)
         } yield zm
+
+      //https://stackoverflow.com/questions/61375338/type-conversion-getting-zmanaged-from-zio-scala
 
       val managedConnPool: ZManaged[Any, Throwable, UcpZLayer.Service] = ???
 
       ZLayer.fromManaged(managedConnPool)
     }
-/*
-Error:(106, 81) type mismatch;
- found   : zio.ZIO[poolCache,Throwable,Unit]
- required: poolCache => zio.ZIO[Any,Nothing,Any]
-          zm: ZManaged[Any, Throwable, UcpZLayer.Service] = ZManaged.make(ucpL)(release)
     */
+
+      def poolCache(implicit tag: Tagged[UcpZLayer.Service]): ZLayer[ZenvLogConfCache_, Throwable, Has[UcpZLayer.Service]] = {
+        val zm: ZManaged[Config[WsConfig], Throwable, poolCache] =
+          for {
+            // Use a Managed directly when access then environment
+            conf <- ZManaged.access[Config[WsConfig]](_.get)
+            // Convert the effect into a no-release managed
+            cpool <- Ref.make(new OraConnectionPool(conf.dbconf, conf.ucpconf)).toManaged_
+            // Create the managed
+            zm <- ZManaged.make(ZIO(new poolCache(cpool)))(_.closeAll)
+          } yield zm
+        zm.toLayer // Convert a `Managed` to `ZLayer` directly
+      }
+
+    /*
+    Type mismatch.
+    Required: zio.ZLayer[ZenvLogConfCache_, Throwable, zio.Has[Service]]
+    Found:    zio.ZLayer[R with Config[WsConfig], Throwable, zio.Has[poolCache]]
+    */
+
+    /*
+    Error:(106, 81) type mismatch;
+     found   : zio.ZIO[poolCache,Throwable,Unit]
+     required: poolCache => zio.ZIO[Any,Nothing,Any]
+              zm: ZManaged[Any, Throwable, UcpZLayer.Service] = ZManaged.make(ucpL)(release)
+        */
 
       /*
 original
