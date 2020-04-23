@@ -7,6 +7,8 @@ import db.Ucp.UcpZLayer.poolCache
 import zio.config.Config
 import env.EnvContainer.ZenvLogConfCache_
 import wsconfiguration.ConfClasses.WsConfig
+import zio.logging.Logging.Logging
+import zio.logging.{Logger, Logging, log}
 import zio.{Has, Ref, Runtime, Tagged, Task, UIO, URIO, ZIO, ZLayer, ZManaged, config}
 
 object Ucp {
@@ -115,16 +117,20 @@ object Ucp {
     */
 
       def poolCache(implicit tag: Tagged[UcpZLayer.Service]): ZLayer[ZenvLogConfCache_, Throwable, Has[UcpZLayer.Service]] = {
+
         val zm: ZManaged[Config[WsConfig], Throwable, poolCache] =
           for {
             // Use a Managed directly when access then environment
             conf <- ZManaged.access[Config[WsConfig]](_.get)
+            cp = new OraConnectionPool(conf.dbconf, conf.ucpconf)
             // Convert the effect into a no-release managed
-            cpool <- Ref.make(new OraConnectionPool(conf.dbconf, conf.ucpconf)).toManaged_
+            cpool <- Ref.make(cp).toManaged_
             // Create the managed
             zm <- ZManaged.make(ZIO(new poolCache(cpool)))(_.closeAll)
           } yield zm
+
         zm.toLayer // Convert a `Managed` to `ZLayer` directly
+
       }
 
     /*
