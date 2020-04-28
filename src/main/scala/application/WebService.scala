@@ -64,7 +64,7 @@ object WebService {
   /**
    * dbConfigList are registered list of databases from config file - application.conf
   */
-  def reqHandlerM(dbConfigList: DbConfig, actorSystem: ActorSystem, rt: Runtime[ZEnvLogCache])(request: HttpRequest):
+  def reqHandlerM(dbConfigList: DbConfig, actorSystem: ActorSystem, rt: Runtime[ZEnvConfLogCache])(request: HttpRequest):
   Future[HttpResponse] = {
     implicit val system: ActorSystem = actorSystem
 
@@ -75,12 +75,11 @@ object WebService {
     import akka.http.scaladsl.unmarshalling.Unmarshal
     import ReqResp._
 
-    lazy val responseFuture: ZIO[ZEnvLogCache, Throwable, HttpResponse] = request
+    lazy val responseFuture: ZIO[ZEnvConfLogCache, Throwable, HttpResponse] = request
     match {
       case request@HttpRequest(HttpMethods.POST, Uri.Path("/dicts"), _, _, _) =>
         val reqEntityString: Future[String] = Unmarshal(request.entity).to[String]
-        //routeDicts(request, dbConfigList, reqEntityString)
-        routeGetDebug(request)
+        routeDicts(request, dbConfigList, reqEntityString)
       case request@HttpRequest(HttpMethods.GET, _, _, _, _) =>
         request match {
           case request@HttpRequest(_, Uri.Path("/debug"), _, _, _) => routeGetDebug(request)
@@ -115,7 +114,7 @@ object WebService {
       for {
         _ <- CacheLog.out("startRequestHandler", true)
         conf <- ZIO.access[Config[WsConfig]](_.get)
-        rti: Runtime[ZEnvLogCache] <- ZIO.runtime[ZEnvLogCache]
+        rti: Runtime[ZEnvConfLogCache] <- ZIO.runtime[ZEnvConfLogCache]
         ss: Source[Http.IncomingConnection, Future[ServerBinding]] <- serverSource(actorSystem)
         reqHandlerFinal <- RIO(reqHandlerM(conf.dbconf, actorSystem, rti) _)
         serverWithReqHandler =
