@@ -19,18 +19,14 @@ object Ucp {
 
     trait Service {
       def getConnection: UIO[Connection]
-
       def setMaxPoolSize(newMaxPoolSize: Int): Task[Int]
-
       def getMaxPoolSize: UIO[Int]
-
       def setConnectionPoolName(name: String): UIO[Unit]
-
       def getConnectionPoolName: UIO[String]
-
+      def getAvailableConnectionsCount: UIO[Int]
+      def getBorrowedConnectionsCount: UIO[Int]
       def closeAll: UIO[Unit]
-
-      def testQuery(i: Int): UIO[Unit]
+     // def testQuery(i: Int): UIO[Unit]
     }
 
     final class poolCache(ref: Ref[OraConnectionPool]) extends UcpZLayer.Service {
@@ -39,15 +35,11 @@ object Ucp {
       override def setMaxPoolSize(newMaxPoolSize: Int): Task[Int] = {
         ref.update(cp => {
           cp.pds.setMaxPoolSize(newMaxPoolSize)
-          cp.pds.setMinPoolSize(newMaxPoolSize)
+          //cp.pds.setMinPoolSize(newMaxPoolSize)
           cp
         }
         ) *> getMaxPoolSize
       }
-
-      /*
-        override def getMaxPoolSize: ZIO[WsConfig, Nothing, Int] = ref.get.map(cp => cp.map(c => c.pds.getMaxPoolSize)).flatten
-      */
 
       override def getMaxPoolSize: UIO[Int] =
         ref.get.map(cp => cp.pds.getMaxPoolSize)
@@ -58,10 +50,16 @@ object Ucp {
       override def getConnectionPoolName: UIO[String] =
         ref.get.map(cp => cp.pds.getConnectionPoolName)
 
+      override def getAvailableConnectionsCount: UIO[Int] =
+        ref.get.map(cp => cp.pds.getAvailableConnectionsCount)
+
+      override def getBorrowedConnectionsCount: UIO[Int] =
+        ref.get.map(cp => cp.pds.getBorrowedConnectionsCount)
+
       override def closeAll: UIO[Unit] =
         ref.get.map(_.closePoolConnections)
 
-      override def testQuery(i: Int): UIO[Unit] = {
+/*      override def testQuery(i: Int): UIO[Unit] = {
         ref.get.map(cp => cp.pds.getConnection()).map { con =>
           val stmt = con.createStatement()
           con.setClientInfo("OCSID.ACTION", i.toString)
@@ -80,7 +78,7 @@ object Ucp {
           }.toList
           rows.foreach(r => println("[" + i + "]    " + r))
         }
-      }
+      }*/
 
 
     }

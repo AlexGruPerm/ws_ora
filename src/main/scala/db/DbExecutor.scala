@@ -9,7 +9,7 @@ import data.{CacheEntity, DictDataRows, DictRow}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
-import reqdata.Query
+import reqdata.{Query, func, proc, select}
 import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
 import zio.logging.log
 import zio.{Task, ZIO, clock}
@@ -18,12 +18,24 @@ object DbExecutor {
 
   type Notifications = Set[String]
 
-  private def getCursorData(beginTs: Long, conn: Connection, query: Query, openConnDur: Long):
-  ZIO[ZEnvConfLogCache,Throwable,DictDataRows]/*Task[DictDataRows]*/ =
-  {
-/*
-    val stmt = conn.sess.prepareCall(s"{call ${query.proc} }")
-    stmt.setNull(1, Types.OTHER)
+  private def execFunction(conn: Connection, query: Query) :List[List[DictRow]] ={
+    val stmt = conn.createStatement()
+    conn.setClientInfo("OCSID.ACTION", "act_1")
+    val rs = stmt.executeQuery("select * from msk_arm_lead.econom_data_source")
+    conn.close()
+    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
+      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
+
+    columns.foreach(c => println(s"${c._1} - ${c._2}" ))
+
+    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+      columns.map(
+        cname => DictRow(cname._1, rs.getString(cname._1))
+      )
+    }.toList
+
+
+/*    stmt.setNull(1, Types.OTHER)
     stmt.registerOutParameter(1, Types.OTHER)
     stmt.execute()
     val afterExecTs: Long = System.currentTimeMillis
@@ -37,18 +49,41 @@ object DbExecutor {
     //List[List[DictRow]]
     val rows = Iterator.continually(pgrs).takeWhile(_.next()).map { rs =>
       columns.map(cname => DictRow(cname._1, rs.getString(cname._1)))
-    }.toList
-*/
+    }.toList*/
+    rows
+  }
 
-    Task(
-      DictDataRows(
-        query.name,
-        openConnDur,
-        0L,//afterExecTs - beginTs,
-        0L,//ystem.currentTimeMillis - afterExecTs,
-        List(List(DictRow("xxx", "yyy")))// rows
-      )
-    )
+  private def getCursorData(beginTs: Long, conn: Connection, query: Query, openConnDur: Long):
+  ZIO[ZEnvConfLogCache, Throwable, DictDataRows] /*Task[DictDataRows]*/ = {
+    query.qt match {
+      case _: func.type => {
+        val rows = execFunction(conn, query)
+        Task(
+          DictDataRows(
+            query.name,
+            openConnDur,
+            123L,
+            234L,
+            rows
+          )
+        )
+      }
+      /*
+      case _: proc.type => Task(execProcedure(conn,query))
+      case _: select.type => Task(execSelect(conn,query))
+      */
+      case _ =>
+        Task(
+          DictDataRows(
+            query.name,
+            openConnDur,
+            0L, //afterExecTs - beginTs,
+            0L, //ystem.currentTimeMillis - afterExecTs,
+            List(List(DictRow("xxx", "yyy"))) // rows
+          )
+        )
+    }
+
   }
 
   import zio.blocking._
@@ -57,7 +92,7 @@ object DbExecutor {
       for {
         cache <- ZIO.access[CacheManager](_.get)
         thisConfig = ZIO.access[DbConfig]
-        conn <- ZIO.access[UcpZLayer](_.get)
+        ucp <- ZIO.access[UcpZLayer](_.get)
         _ <- CacheLog.out("getDataFromDb", false)
         /*
         thisConfig <-
@@ -69,7 +104,7 @@ object DbExecutor {
           }
         */
         tBeforeOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
-        thisConnection <- conn.getConnection//effectBlocking(pgPool.sess(thisConfig, trqDict)).refineToOrDie[PSQLException]
+        thisConnection <- ucp.getConnection //effectBlocking(pgPool.sess(thisConfig, trqDict)).refineToOrDie[PSQLException]
         tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
         openConnDuration = tAfterOpenConn - tBeforeOpenConn
         dsCursor = getCursorData(tBeforeOpenConn, thisConnection, reqQuery, openConnDuration)

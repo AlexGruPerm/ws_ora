@@ -141,8 +141,7 @@ object Ucp {
            val stmt = con.createStatement()
            con.setClientInfo("OCSID.ACTION", i.toString)
            val rs = stmt.executeQuery(
-             "select sum(t.OBJECT_ID)as cnt from all_objects t where rownum<=round(dbms_random.value(1,100))"
-             //"select id,s_name,view_src_data_name from d_data_source where id<=10"
+             "select * from msk_arm_lead.econom_data_source"
            )
            con.close() //!!!
            val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
