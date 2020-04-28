@@ -5,6 +5,8 @@ import io.circe.generic.JsonCodec
 import io.circe.generic.auto._
 import io.circe.syntax._
 
+
+
 @JsonCodec
 case class DictRow(name: String, value: String)
 
@@ -55,12 +57,6 @@ object CacheEntity {
  * One cache entity ~= one dictionary - DictDataRows
 */
 case class Cache(HeartbeatCounter: Int, cacheCreatedTs: Long = System.currentTimeMillis, dictsMap: Map[Int, CacheEntity])
-/*
-object Cache{
-   def apply(HeartbeatCounter: Int, dict: Map[Int, CacheEntity]): Cache =
-    new Cache(HeartbeatCounter, dict)
-}
-*/
 
 
 

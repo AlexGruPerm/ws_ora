@@ -5,6 +5,8 @@ import java.io.IOException
 import akka.Done
 import akka.actor.ActorSystem
 import data.CacheEntity
+import db.DbExecutor.Notifications
+import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.{ZEnvConfLogCache, ZEnvLogCache}
 import wsconfiguration.ConfClasses.WsConfig
@@ -38,23 +40,25 @@ object CacheHelper {
       _ <- cache.remove(foundKeys)
     } yield ()
 
-/*
-  val cacheCleaner: Array[PGNotification] => ZIO[ZEnvLogCache, Nothing, Unit] = notifications =>
+
+  val cacheCleaner: Notifications => ZIO[ZEnvLogCache, Nothing, Unit] = notifications =>
     for {
       _ <- ZIO.foreach(notifications) { nt =>
-        if (nt.getName == "change") {
+        //if (nt. == "change") {
           for {
-            _ <- log.info(s"Notif: name = ${nt.getName} pid = ${nt.getPID} parameter = ${nt.getParameter}")
-            _ <- removeFromCacheByRefTable(nt.getParameter)
+            //_ <- log.info(s"Notif: name = ${nt.getName} pid = ${nt.getPID} parameter = ${nt.getParameter}")
+            _ <- log.info(s"Notif: $nt")
+            _ <- removeFromCacheByRefTable(nt)
           } yield UIO.succeed(())
-        } else {
+        /*} else {
           UIO.succeed(())
         }
+        */
       }.catchAllCause {
         e => log.error(s" cacheValidator Exception $e")
       }
     } yield ()
-  */
+
 
   /**
    **
@@ -72,31 +76,32 @@ object CacheHelper {
    * FOR EACH statement EXECUTE PROCEDURE notify_change();
    *
    */
-/*  val cacheValidator: (PgConnection) => ZIO[ZEnvConfLogCache, Throwable, Unit] = (pgsessSrc) => {
+  val cacheValidator:  ZIO[ZEnvConfLogCache, Throwable, Unit] = {
     import zio.duration._
     for {
       conf <- ZIO.access[Config[WsConfig]](_.get)
+      pgsessSrc <- ZIO.access[UcpZLayer](_.get)
+      pgsessLs <- pgsessSrc.getConnection /*orElse
+        PgConnection(conf).sess.retry(Schedule.recurs(3) && Schedule.spaced(2.seconds))*/
 
-      pgsessLs <- pgsessSrc.sess orElse
-        PgConnection(conf).sess.retry(Schedule.recurs(3) && Schedule.spaced(2.seconds))
-
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     _ <- log.info(s"DB Listener PID = ${pgsessLs.pid}")
-      notifications = scala.Option(pgsessLs.sess.getNotifications).getOrElse(Array[PGNotification]()) //timeout
+      /*
+     _ <- log.info(s"getSchema - DB Listener PID = ${pgsessLs.getSchema}")
+      notifications = scala.Option(pgsessLs.sess.getNotifications).getOrElse(Array[Notification]()) //timeout
 
       _ <- if (notifications.nonEmpty) {
         log.trace(s"notifications size = ${notifications.size}")
       } else {
         UIO.succeed(())
       }
-      _ <- cacheCleaner(notifications)
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      */
+      notifs :Notifications = Set("schema1.table1","schema2.table2")//.toArray[Notifications]
 
+      _ <- cacheCleaner(notifs/*notifications*/)
 
     } yield ()
-  }*/
+  }
+
+
 
   /**
    * Is field reftables from Class CacheEntity contain given tableName

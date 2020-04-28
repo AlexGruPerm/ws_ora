@@ -39,18 +39,13 @@ object WebService {
 
          //thisConnection = PgConnection(conf.dbListenConfig)
 
-/*          cacheCheckerValidator <- cacheValidator(conf.dbListenConfig, thisConnection)
+          cacheCheckerValidator <- cacheValidator//(conf.dbListenConfig, thisConnection)
             .repeat(Schedule.spaced(3.second)).forkDaemon *>
             cacheChecker.repeat(Schedule.spaced(2.second)).forkDaemon *>
             readUserInterrupt(fiber,actorSystem).repeat(
-              Schedule.spaced(1.second)).forkDaemon*/
+              Schedule.spaced(1.second)).forkDaemon
 
-          /*
-          checkTermSignal <- checkTerm.repeat(Schedule.spaced(3.second)).forkDaemon
-          _ <- checkTermSignal.join
-          */
-
-       //   _ <- cacheCheckerValidator.join //todo: may be divide on 2 separate forkDeamon
+          _ <- cacheCheckerValidator.join //todo: may be divide on 2 separate forkDeamon
         } yield ()
     )
   }

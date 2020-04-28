@@ -9,8 +9,9 @@ import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.FileIO
 import akka.util.ByteString
 import data.{DbErrorDesc, DictsDataAccum, RequestResult}
+import db.DbExecutor
 import env.CacheObject.CacheManager
-import env.EnvContainer.{ZEnvLog, ZEnvLogCache}
+import env.EnvContainer.{ZEnvConfLogCache, ZEnvLog, ZEnvLogCache}
 import io.circe.parser.parse
 import io.circe.Printer
 import zio.{IO, Task, UIO, URIO, ZIO}
@@ -134,8 +135,8 @@ object ReqResp {
 
 
 
-/*    import zio.blocking._
-    val routeDicts: (HttpRequest, DbConfig, Future[String]) => ZIO[ZEnvLogCache, Throwable, HttpResponse] =
+    import zio.blocking._
+    val routeDicts: (HttpRequest, DbConfig, Future[String]) => ZIO[ZEnvConfLogCache, Throwable, HttpResponse] =
       (request, configuredDbList, reqEntity) =>
       for {
         cache <- ZIO.access[CacheManager](_.get)
@@ -197,9 +198,9 @@ object ReqResp {
           }
         }
 
-    } yield resFromFuture*/
+    } yield resFromFuture
 
-  private def openFile(s: String): Task[BufferedSource]= // IO[IOException, BufferedSource] =
+  private def openFile(s: String): Task[BufferedSource]=
     IO.effect(Source.fromFile(s)).refineToOrDie[IOException]
 
   private def closeFile(f: BufferedSource): UIO[Unit] =
@@ -212,10 +213,7 @@ object ReqResp {
       openFile("C:\\ws_fphp\\src\\main\\resources\\debug_post.html").bracket(closeFile) {
         file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonText_))
       }
-
-
     _ <- logRequest(request)
-
     f <- ZIO.fromFuture { implicit ec =>
       Future.successful(
         HttpResponse(StatusCodes.OK, entity = HttpEntity(`text/html` withCharset `UTF-8`, strDebugForm)))
