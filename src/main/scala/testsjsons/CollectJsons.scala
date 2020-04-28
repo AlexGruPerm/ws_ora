@@ -2,137 +2,81 @@ package testsjsons
 
 object CollectJsons {
 
-  val reqJsonText_@ =
+  val reqJsonOra1 =
     """
-      |              { "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
-      |                "cont_encoding_gzip_enabled" : 1,
-      |                 "thread_pool" : "block",
-      |                 "request_timeout_ms": 5000,
-      |                 "cache_live_time" : 60000,
-      |                "dicts": [
-      |                  {
-      |                    "name" : "oiv",
-      |                    "db" : "dbp",
-      |                    "proc" : "prm_salary.pkg_web_cons_rep_grbs_list(refcur => ?, p_user_id => 45224506)",
-      |                    "reftables" : ["sl_user_access","sl_d_grbs","sl_f_cons_rep","sl_inst_grbs_link","sl_institution" ]
-      |                  },
-      |                 {
-      |                  "name" : "okfs",
-      |                  "db" : "dbp",
-      |                  "proc":"prm_salary.pkg_web_cons_rep_okfs_list(refcur => ?)",
-      |                  "reftables" : ["sl_d_okfs"]
-      |                }
-      |              ]
-      |             }
-      |""".stripMargin
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "block",
+      |                  "request_timeout_ms": 5000,
+      |                  "cache_live_time" : 60000,
+      |                  "context" : "begin
+      |                                    MSK_ARM_LEAD.PKG_ARM_STRUCT.set_context_variables(
+      |                                       p_user_id =>  37317,
+      |                                       p_user_role =>  1,
+      |                                       p_budget =>  15,
+      |                                       p_ddate =>  20200415,
+      |                                       p_appg_date =>  null,
+      |                                       p_book =>  null,
+      |                                       p_tab =>  null,
+      |                                       p_slice =>  null,
+      |                                       p_pok =>  null);
+      |                               end;
+      |                              ",
+      |                  "queries": [
+      |                                {
+      |                                 "name" : "query1",
+      |                                 "qt" : "func",
+      |                                 "query" : "select msk_arm_lead.pkg_econom.f_get_data from dual",
+      |                                 "reftables" : ["msk_arm_lead.econom_indicator_tab","msk_arm_lead.econom_data"]
+      |                               }
+      |                   ]}
+      """.stripMargin
 
-  val reqJsonText_123 =
+  val reqJsonOra2 =
     """
-      |              { "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
-      |                "cont_encoding_gzip_enabled" : 1,
-      |                 "thread_pool" : "block",
-      |                 "request_timeout_ms": 5000,
-      |                 "cache_live_time" : 60000,
-      |                "dicts": [
-      |                {
-      |                  "name" : "okfs_users",
-      |                  "db" : "dbp",
-      |                  "proc":"prm_salary.pkg_web_cons_rep_okfs_users(refcur => ?)",
-      |                  "reftables" : ["prm_salary.sl_d_okfs","prm_admin.t_users"]
-      |                }
-      |              ]
-      |             }
-      |""".stripMargin
-
-
-  val reqJsonText_ =
-    """
-      |              { "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
-      |                "cont_encoding_gzip_enabled" : 1,
-      |                 "thread_pool" : "block",
-      |                 "request_timeout_ms": 5000,
-      |                 "cache_live_time" : 60000,
-      |                "dicts": [
-      |                {
-      |                  "name" : "period",
-      |                  "db" : "dbp",
-      |                  "proc" : "prm_salary.pkg_web_cons_rep_input_period_list(refcur => ?)"
-      |                },
-      |                  {
-      |                    "name" : "position_group",
-      |                    "db" : "dbp",
-      |                    "proc" : "prm_salary.pkg_web_posit_rep_position_group_list(refcur => ?)",
-      |                    "reftables" : ["prm_salary.sl_d_position_group" ]
-      |                  },
-      |                  {
-      |                    "name" : "category_list",
-      |                    "db" : "dbp",
-      |                    "proc" : "prm_salary.pkg_web_cons_rep_edict_category_list(refcur => ?)",
-      |                    "reftables" : ["prm_salary.sl_d_edict_category" ]
-      |                  },
-      |                  {
-      |                    "name" : "oiv",
-      |                    "db" : "dbp",
-      |                    "proc" : "prm_salary.pkg_web_cons_rep_grbs_list(refcur => ?, p_user_id => 45224506)",
-      |                    "reftables" : ["prm_salary.sl_user_access","prm_salary.sl_d_grbs","prm_salary.sl_f_cons_rep","prm_salary.sl_inst_grbs_link","prm_salary.sl_institution" ]
-      |                  },
-      |                {
-      |                 "name" : "institution",
-      |                  "db" : "dbp",
-      |                  "proc" : "prm_salary.pkg_web_cons_rep_institution_list(refcur => ?, p_user_id => 45224506)",
-      |                  "reftables" : ["prm_salary.sl_inst_grbs_link","prm_salary.sl_user_access","prm_salary.sl_d_institution_data_indication","prm_salary.sl_d_institution"]
-      |                },
-      |                {
-      |                  "name" : "industry_class",
-      |                  "db" : "dbp",
-      |                  "proc":"prm_salary.pkg_web_cons_rep_form_type_list(refcur => ?)",
-      |                  "reftables" : ["prm_salary.sl_f_cons_rep_hor","prm_salary.sl_d_industry_class"]
-      |                },
-      |                {
-      |                  "name" : "territory",
-      |                  "db" : "dbp",
-      |                  "proc":"prm_salary.pkg_web_cons_rep_territory_list(refcur => ?)",
-      |                  "reftables" : ["prm_salary.sl_f_cons_rep","prm_salary.sl_d_territory"]
-      |                },
-      |                {
-      |                  "name" : "okfs",
-      |                  "db" : "dbp",
-      |                  "proc":"prm_salary.pkg_web_cons_rep_okfs_list(refcur => ?)",
-      |                  "reftables" : ["prm_salary.sl_d_okfs"]
-      |                }
-      |              ]
-      |             }
-      |""".stripMargin
-
-
-
-
-  val reqJsonText___ =
-    """
-      |              { "user_session" : "9d6iQk5LmtfpoYd78mmuHsajjaI2rbRh",
-      |                "cont_encoding_gzip_enabled" : 0,
-      |                 "thread_pool" : "block",
-      |                 "request_timeout_ms": 5000,
-      |                "dicts": [
-      |                {
-      |                 "name"  : "litener_notify_1",
-      |                  "db"   : "dbp",
-      |                  "proc" : "prm_salary.pkg_web_litener_notify(refcur => ?, p_user_id => 45224506)",
-      |                  "reftables" : ["table1","table2"]
-      |                },
-      |                {
-      |                 "name"  : "litener_notify_2",
-      |                  "db"   : "dbp",
-      |                  "proc" : "prm_salary.pkg_web_litener_notify(refcur => ?, p_user_id => 45224506)",
-      |                  "reftables" : ["listener_notify","any_table_name"]
-      |                },
-      |                {
-      |                 "name"  : "litener_notify_3",
-      |                  "db"   : "dbp",
-      |                  "proc" : "prm_salary.pkg_web_litener_notify(refcur => ?, p_user_id => 45224506)"
-      |                }
-      |              ]
-      |             }
-      |""".stripMargin
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "block",
+      |                  "request_timeout_ms": 5000,
+      |                  "cache_live_time" : 60000,
+      |                  "context" : "begin
+      |                                    MSK_ARM_LEAD.PKG_ARM_STRUCT.set_context_variables(
+      |                                       p_user_id =>  37317,
+      |                                       p_user_role =>  1,
+      |                                       p_budget =>  15,
+      |                                       p_ddate =>  20200415,
+      |                                       p_appg_date =>  null,
+      |                                       p_book =>  null,
+      |                                       p_tab =>  null,
+      |                                       p_slice =>  null,
+      |                                       p_pok =>  null);
+      |                               end;
+      |                              ",
+      |                  "queries": [
+      |                                {
+      |                                 "name" : "query1",
+      |                                 "qt" : "func",
+      |                                 "query" : "select msk_arm_lead.pkg_econom.f_get_data from dual",
+      |                                 "reftables" : ["msk_arm_lead.econom_indicator_tab","msk_arm_lead.econom_data"]
+      |                               },
+      |                                {
+      |                                 "name" : "query2",
+      |                                 "qt" : "proc",
+      |                                 "query" : "prm_salary.pkg_web_posit_rep_position_group_list(refcur => ?)",
+      |                                 "reftables" : ["msk_arm_lead.econom_data","msk_arm_lead.econom_data_source"]
+      |                                },
+      |                                {
+      |                                 "name" : "query3",
+      |                                 "qt" : "select",
+      |                                 "query" : "select * from msk_arm_lead.econom_data",
+      |                                 "reftables" : ["msk_arm_lead.econom_data","msk_arm_lead.econom_data_source"]
+      |                                },
+      |                                {
+      |                                 "name" : "trash",
+      |                                 "query" : "select * from msk_arm_lead.econom_data",
+      |                                 "reftables" : ["msk_arm_lead.econom_data","msk_arm_lead.econom_data_source"]
+      |                                }
+      |                   ]}
+      """.stripMargin
 
 }

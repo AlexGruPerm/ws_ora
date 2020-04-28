@@ -24,7 +24,7 @@ import reqdata.{NoConfigureDbInRequest, ReqParseException, RequestData}
 import testsjsons.CollectJsons
 import wsconfiguration.ConfClasses.DbConfig
 import zio.logging.log
-
+import reqdata.CustDecoders._
 
 /**
  * monitor sessions from wsfphp:
@@ -54,9 +54,11 @@ object ReqResp {
     _ <- log.trace("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     _ <- log.trace(s"session_id = ${rd.user_session}")
     _ <- log.trace(s"encoding_gzip = ${rd.cont_encoding_gzip_enabled}")
-    _ <- log.trace(s"dicts size = ${rd.dicts.size}")
-    _ <- URIO.foreach(rd.dicts) { d =>
-      log.trace(s"dict = ${d.db} - ${d.proc} ")
+    _ <- log.trace(s"dicts size = ${rd.queries.size}")
+
+    _ <- URIO.foreach(rd.queries) { q =>
+      log.trace(s"query NAME=${q.name}  querytype = ${q.qt} ")
+      //log.trace(s"query NAME=${q.name}  proc = ${q.proc} func = ${q.func} select = ${q.select} ")
       /*
       for {
         _ <- log.trace(s" ref tables in dict : ${d.reftables.getOrElse(Seq()).size} ")
@@ -100,7 +102,7 @@ object ReqResp {
       match {
         case   Left(sq) => Task.succeed(sq)
         case   Right(failure) =>  Task.fail (
-          ReqParseException("Error code[002] Invalid json in request", failure.getCause)
+          ReqParseException("Error code[002] Invalid json in request", (failure.getCause))
         )
       }
       }
@@ -108,29 +110,33 @@ object ReqResp {
 
 
   /**
-   * Function to check in one place that all dicts.db exist among configured db list (application.conf)
+   * Function to check request.
   */
-  val dictDbsCheckInConfig: (Task[RequestData], DbConfig) => ZIO[ZEnvLog, Throwable, Unit] =
+    //todo: add here real check logic.
+  val checkRequest: (Task[RequestData], DbConfig) => ZIO[ZEnvLog, Throwable, Unit] =
     (requestData, configuredDB) =>
       for {
         //logChecker <- ZIO.access[Logging](_.logger)xxxx
         reqData <- requestData
-        reqListDb: Seq[String] = reqData.dicts.map(_.db).distinct
+        /*
+        reqListDb: Seq[String] = reqData.queries.map(_.db).distinct
         accumRes <- ZIO.foreachPar(reqListDb){thisDb =>
           if (1==1)/*(configuredDB.name == thisDb) */{
             ZIO.none
         } else {
             ZIO.some(s"DB [$thisDb] from request not found in config file application.conf")
           }}
+        */
 
-        checkResult <- if (accumRes.flatten.nonEmpty) {
+        checkResult <- if (1==0) {
           Task.fail(
-            NoConfigureDbInRequest(accumRes.flatten.head)
+            NoConfigureDbInRequest("Text of error message")
           )
         } else {Task.succeed(())
         }
 
       } yield checkResult
+
 
 
 
@@ -151,7 +157,7 @@ object ReqResp {
         _ <- logReqData(reqRequestData)
         seqResDicts <- reqRequestData
         //check that all requested db are configures.
-        resString :ByteString <- dictDbsCheckInConfig(reqRequestData, configuredDbList)
+        resString :ByteString <- checkRequest(reqRequestData, configuredDbList)
           .foldM(
             checkErr => {
               val failJson =
@@ -160,7 +166,7 @@ object ReqResp {
             },
             _ =>
               for {
-                str <- ZIO.foreachPar(seqResDicts.dicts) {
+                str <- ZIO.foreachPar(seqResDicts.queries) {
                   thisDict =>
                     if (seqResDicts.thread_pool == "block") {
                       //run in separate blocking pool, "unlimited" thread count
@@ -207,12 +213,14 @@ object ReqResp {
     UIO.unit
 
   val routeGetDebug: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
-    strDebugForm <- openFile("debug_post.html").bracket(closeFile) {
-      file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonText_))
+    strDebugForm <- openFile("C:\\ws_ora\\src\\main\\resources\\debug_post.html").bracket(closeFile) {
+      file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonOra1))
     } orElse
-      openFile("C:\\ws_fphp\\src\\main\\resources\\debug_post.html").bracket(closeFile) {
-        file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonText_))
+      openFile("C:\\ws_ora\\src\\main\\resources\\debug_post.html").bracket(closeFile) {
+        file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonOra1))
       }
+    //strDebugForm = strDebugFormSource
+
     _ <- logRequest(request)
     f <- ZIO.fromFuture { implicit ec =>
       Future.successful(

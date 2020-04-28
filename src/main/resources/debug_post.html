@@ -43,8 +43,15 @@
             }
 
             function funcOnClickSendRequestButton() {
-              console.log("Send request");
-                var postRqDataJson = document.getElementById("rq-json").innerText;
+              console.log("Send request WS");
+                var postRqDataJsonSrc = document.getElementById("rq-json").innerText;
+                var postRqDataJson = postRqDataJsonSrc.replace(/[\r\n]+/g," ");
+                /*
+                console.log("SOURCE----------------");
+                console.log(postRqDataJsonSrc);
+                console.log("REPLACED----------------");
+                console.log(postRqDataJson);
+                */
                 var data = JSON.parse(postRqDataJson);
                 console.log(data);
                     postAjax('/dicts', data, function(data){
