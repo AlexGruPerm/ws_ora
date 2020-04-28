@@ -15,7 +15,7 @@ import io.circe.parser._
 object CustDecoders {
 
   //todo: refactor c.c. name Dict into Query
-  implicit val decoderDict: Decoder[Dict] = Decoder.instance { h =>
+  implicit val decoderDict: Decoder[Query] = Decoder.instance { h =>
     for {
       name <- h.get[String]("name")
       qt <- h.get[Option[String]]("qt")
@@ -26,7 +26,7 @@ object CustDecoders {
         case "select" => select
         case _ => unknown
       }
-    } yield Dict(name,qtRes,rt)
+    } yield Query(name,qtRes,rt)
   }
 
   implicit val decoderRequestData: Decoder[RequestData] = Decoder.instance { h =>
@@ -37,7 +37,7 @@ object CustDecoders {
       request_timeout_ms <- h.get[Double]("request_timeout_ms")
       cache_live_time <- h.get[Option[Long]]("cache_live_time")
       context <- h.get[Option[String]]("context")
-      queries <- h.get[Seq[Dict]]("queries")
+      queries <- h.get[Seq[Query]]("queries")
     } yield RequestData(user_session,cont_encoding_gzip_enabled,thread_pool,request_timeout_ms,cache_live_time,context,queries)
   }
 
@@ -47,7 +47,7 @@ object CustDecoders {
 /**
 */
 //@JsonCodec
-case class Dict(
+case class Query(
                  name: String,
                  qt : queryType,
                  reftables: Option[Seq[String]]
@@ -63,7 +63,7 @@ case class RequestData(
                         request_timeout_ms: Double, //client can set request timeout, after t.o. return json response with error
                         cache_live_time: Option[Long],//0 - no cache, otherwise set live time for each dict in cache. todo: Future set individual.
                         context: Option[String],
-                        queries: Seq[Dict]
+                        queries: Seq[Query]
                       )
 
 

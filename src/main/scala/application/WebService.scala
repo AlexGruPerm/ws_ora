@@ -79,7 +79,7 @@ object WebService {
     match {
       case request@HttpRequest(HttpMethods.POST, Uri.Path("/dicts"), _, _, _) =>
         val reqEntityString: Future[String] = Unmarshal(request.entity).to[String]
-        routeDicts(request, dbConfigList, reqEntityString)
+        routeQueries(request, dbConfigList, reqEntityString)
       case request@HttpRequest(HttpMethods.GET, _, _, _, _) =>
         request match {
           case request@HttpRequest(_, Uri.Path("/debug"), _, _, _) => routeGetDebug(request)

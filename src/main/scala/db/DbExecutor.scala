@@ -9,7 +9,7 @@ import data.{CacheEntity, DictDataRows, DictRow}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
-import reqdata.Dict
+import reqdata.Query
 import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
 import zio.logging.log
 import zio.{Task, ZIO, clock}
@@ -18,11 +18,11 @@ object DbExecutor {
 
   type Notifications = Set[String]
 
-  private def getCursorData(beginTs: Long, conn: Connection, dict: Dict, openConnDur: Long):
+  private def getCursorData(beginTs: Long, conn: Connection, query: Query, openConnDur: Long):
   ZIO[ZEnvConfLogCache,Throwable,DictDataRows]/*Task[DictDataRows]*/ =
   {
-    /*
-    val stmt = conn.sess.prepareCall(s"{call ${dict.proc} }")
+/*
+    val stmt = conn.sess.prepareCall(s"{call ${query.proc} }")
     stmt.setNull(1, Types.OTHER)
     stmt.registerOutParameter(1, Types.OTHER)
     stmt.execute()
@@ -38,10 +38,11 @@ object DbExecutor {
     val rows = Iterator.continually(pgrs).takeWhile(_.next()).map { rs =>
       columns.map(cname => DictRow(cname._1, rs.getString(cname._1)))
     }.toList
-    */
+*/
+
     Task(
       DictDataRows(
-        dict.name,
+        query.name,
         openConnDur,
         0L,//afterExecTs - beginTs,
         0L,//ystem.currentTimeMillis - afterExecTs,
@@ -52,13 +53,12 @@ object DbExecutor {
 
   import zio.blocking._
 
-  private def getDictFromCursor: (DbConfig, Dict) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
-    (configuredDb, trqDict) =>
+  private def getDataFromDb: Query => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] = reqQuery =>
       for {
         cache <- ZIO.access[CacheManager](_.get)
         thisConfig = ZIO.access[DbConfig]
         conn <- ZIO.access[UcpZLayer](_.get)
-        _ <- CacheLog.out("getDictFromCursor", false)
+        _ <- CacheLog.out("getDataFromDb", false)
         /*
         thisConfig <-
           if (configuredDb.name == trqDict.db) {
@@ -72,10 +72,10 @@ object DbExecutor {
         thisConnection <- conn.getConnection//effectBlocking(pgPool.sess(thisConfig, trqDict)).refineToOrDie[PSQLException]
         tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
         openConnDuration = tAfterOpenConn - tBeforeOpenConn
-        dsCursor = getCursorData(tBeforeOpenConn, thisConnection, trqDict, openConnDuration)
-        hashKey: Int = trqDict.hashCode() //todo: add user_session
+        dsCursor = getCursorData(tBeforeOpenConn, thisConnection, reqQuery, openConnDuration)
+        hashKey: Int = reqQuery.hashCode() //todo: add user_session
         dictRows <- dsCursor
-        _ <- cache.set(hashKey, CacheEntity(System.currentTimeMillis, dictRows, trqDict.reftables.getOrElse(Seq())))
+        _ <- cache.set(hashKey, CacheEntity(System.currentTimeMillis, dictRows, reqQuery.reftables.getOrElse(Seq())))
         ds <- dsCursor
         // We absolutely need close it to return to the pool
         _ = thisConnection.close()
@@ -84,7 +84,7 @@ object DbExecutor {
       } yield ds
 
 
-  val getDict: (DbConfig, Dict) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
+  val getDbResultSet: (DbConfig, Query) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
     (configuredDb, trqDict) =>
       for {
         cache <- ZIO.access[CacheManager](_.get)
@@ -97,7 +97,7 @@ object DbExecutor {
             log.trace(s"--- [VALUE GOT FROM CACHE] [${s.dictDataRows.name}] ---") *>
               ZIO.succeed(s.dictDataRows)
           case None => for {
-            db <- getDictFromCursor(configuredDb, trqDict)
+            db <- getDataFromDb(trqDict)
             _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")
           } yield db
         }
