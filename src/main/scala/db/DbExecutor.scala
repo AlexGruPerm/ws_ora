@@ -146,7 +146,7 @@ object DbExecutor {
         */
         hashKey: Int = reqHeader.hashCode() + reqQuery.hashCode() //reqQuery.hashCode()  // todo: add user_session
         dictRows <- dsCursor
-        _ <- cache.set(hashKey, CacheEntity(System.currentTimeMillis, dictRows, reqQuery.reftables.getOrElse(Seq())))
+        _ <- cache.set(hashKey, CacheEntity(System.currentTimeMillis, System.currentTimeMillis, dictRows, reqQuery.reftables.getOrElse(Seq())))
         ds <- dsCursor
         // We absolutely need close it to return to the pool
         _ = thisConnection.close()

@@ -23,7 +23,15 @@ object CacheObject {
 
       override def getCacheValue: UIO[Cache] = ref.get.map(c => c)
 
-      override def get(key: Int): UIO[Option[CacheEntity]] = ref.get.map(_.dictsMap.get(key))
+      override def get(key: Int): UIO[Option[CacheEntity]] = {
+        //todo: here we need update CacheEntity tslru
+        /*
+        ref.update(cvu => cvu.copy(HeartbeatCounter = cvu.HeartbeatCounter + 1,
+          dictsMap = cvu.dictsMap.updated(key,cvu.dictsMap.get(key).t)))
+        */
+        ref.get.map(_.dictsMap.get(key))
+      }
+
 
       override def set(key: Int, value: CacheEntity): UIO[Unit] = {
        //println(s"METHOD SET - CURR HBC = ${ref.get.map(_.HeartbeatCounter)}")

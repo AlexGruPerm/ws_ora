@@ -44,11 +44,11 @@ case class RequestResult(status: String,
 //todo: maybe add prefix in response, is it from cache or not!?
 
 
-case class CacheEntity(ts: Long, dictDataRows: DictDataRows, reftables: Seq[String])
+case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, reftables: Seq[String])
 
 object CacheEntity {
    def apply(data: DictDataRows, reftables: Seq[String]): CacheEntity =
-    new CacheEntity(System.currentTimeMillis, data, reftables)
+    new CacheEntity(System.currentTimeMillis, System.currentTimeMillis, data, reftables)
 }
 
 /**
