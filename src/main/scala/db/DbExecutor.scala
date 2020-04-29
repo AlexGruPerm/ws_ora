@@ -1,6 +1,6 @@
 package db
 
-import java.sql.{Connection, Types}
+import java.sql.{CallableStatement, Connection, ResultSet, Types}
 import java.util.concurrent.TimeUnit
 import java.util.NoSuchElementException
 
@@ -9,7 +9,8 @@ import data.{CacheEntity, DictDataRows, DictRow}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
-import reqdata.{Query, func, proc, select}
+import oracle.jdbc.{OracleCallableStatement, OracleTypes}
+import reqdata.{Query, RequestHeader, func, proc, select}
 import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
 import zio.logging.log
 import zio.{Task, ZIO, clock}
@@ -18,21 +19,59 @@ object DbExecutor {
 
   type Notifications = Set[String]
 
-  private def execFunction(conn: Connection, query: Query) :List[List[DictRow]] ={
+  /**
+   * Optimizationm scrollable r.s.
+   * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
+  */
+  private def execFunction(conn: Connection, reqHeader: RequestHeader, query: Query) :List[List[DictRow]] ={
     val stmt = conn.createStatement()
     conn.setClientInfo("OCSID.ACTION", "act_1")
-    val rs = stmt.executeQuery(query.query/*"select * from msk_arm_lead.econom_data_source"*/)
-    conn.close()
-    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
 
-    columns.foreach(c => println(s"${c._1} - ${c._2}" ))
+    reqHeader.context match {
+      case Some(ctx) => {
+        val context = ctx.trim.replaceAll(" +", " ")
+        println(s"SET CONTEXT ${context}")
+        stmt.execute(context)
+      }
+      case None => ()
+    }
 
-    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+    //val cstmt: OracleCallableStatement  = conn.prepareCall(" select msk_arm_lead.pkg_econom.f_get_data from dual"/*query.query*/).asInstanceOf[OracleCallableStatement]
+
+    val call :CallableStatement = conn.prepareCall ("{ ? = call msk_arm_lead.pkg_econom.f_get_data}");
+    call.registerOutParameter (1, OracleTypes.CURSOR);
+ //   cstmt.registerReturnParameter(1, Types.REF_CURSOR)
+    //cstmt.executeQuery()
+    call.execute()
+
+    val rs1 :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
+    //val rs1 = cstmt.getReturnResultSet //.getCursor( 1 )// stmt.executeQuery(query.query)
+    //conn.close()
+    val columns: List[(String, String)] = (1 to rs1.getMetaData.getColumnCount)
+      .map(cnum => (rs1.getMetaData.getColumnName(cnum), rs1.getMetaData.getColumnTypeName(cnum))).toList
+
+    println(s"COLUMN COUNTS [1] = ${columns.size}")
+    columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
+
+    /*
+    val rs = stmt
+
+    val columns2: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
+      .map(cnum => (rs1.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
+
+    println(s"COLUMN COUNTS [2] = ${columns2.size}")
+    columns2.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
+    */
+
+
+
+    val rows = Iterator.continually(rs1).takeWhile(_.next()).map { rs =>
       columns.map(
         cname => DictRow(cname._1, rs.getString(cname._1))
       )
     }.toList
+
+    conn.close()
 
 
 /*    stmt.setNull(1, Types.OTHER)
@@ -53,11 +92,11 @@ object DbExecutor {
     rows
   }
 
-  private def getCursorData(beginTs: Long, conn: Connection, query: Query, openConnDur: Long):
+  private def getCursorData(beginTs: Long, conn: Connection, reqHeader: RequestHeader, query: Query, openConnDur: Long):
   ZIO[ZEnvConfLogCache, Throwable, DictDataRows] = {
     query.qt match {
       case _: func.type => {
-        val rows = execFunction(conn, query)
+        val rows = execFunction(conn, reqHeader, query)
         log.info(s"getCursorData [func] ${query.name}")
         Task(
           DictDataRows(
@@ -89,7 +128,8 @@ object DbExecutor {
 
   import zio.blocking._
 
-  private def getDataFromDb: Query => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] = reqQuery =>
+  private def getDataFromDb: (RequestHeader,Query) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
+    (reqHeader, reqQuery) =>
       for {
         cache <- ZIO.access[CacheManager](_.get)
         ucp <- ZIO.access[UcpZLayer](_.get)
@@ -98,7 +138,7 @@ object DbExecutor {
         thisConnection <- ucp.getConnection //effectBlocking(pgPool.sess(thisConfig, trqDict)).refineToOrDie[PSQLException]
         tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
         openConnDuration = tAfterOpenConn - tBeforeOpenConn
-        dsCursor = getCursorData(tBeforeOpenConn, thisConnection, reqQuery, openConnDuration).refineToOrDie[java.sql.SQLException]
+        dsCursor = getCursorData(tBeforeOpenConn, thisConnection, reqHeader, reqQuery, openConnDuration).refineToOrDie[java.sql.SQLException]
         /**
          * in getCursorData we can get error like this :
          * ║ java.sql.SQLException: ORA-06503: PL/SQL: Function return without value
@@ -116,20 +156,20 @@ object DbExecutor {
       } yield ds
 
 
-  val getDbResultSet: (DbConfig, Query) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
-    (configuredDb, trqDict) =>
+  val getDbResultSet: ( Query, RequestHeader) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
+    ( trqDict, reqHeader) =>
       for {
         cache <- ZIO.access[CacheManager](_.get)
         //todo: remove this 2 outputs.
         //cv <- cache.getCacheValue
         //_ <- log.trace(s"getDict HeartbeatCounter = ${cv.HeartbeatCounter} ")
-        valFromCache: Option[CacheEntity] <- cache.get(trqDict.hashCode())
+        valFromCache: Option[CacheEntity] <- cache.get(reqHeader.hashCode() + trqDict.hashCode()) //todo: ??!!
         dictRows <- valFromCache match {
           case Some(s: CacheEntity) =>
             log.trace(s"--- [VALUE GOT FROM CACHE] [${s.dictDataRows.name}] ---") *>
               ZIO.succeed(s.dictDataRows)
           case None => for {
-            db <- getDataFromDb(trqDict)
+            db <- getDataFromDb(reqHeader,trqDict)
             _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")
           } yield db
         }

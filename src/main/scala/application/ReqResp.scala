@@ -52,8 +52,8 @@ object ReqResp {
   val logReqData: Task[RequestData] => ZIO[ZEnvLog, Throwable, Unit] = reqData => for {
     rd <- reqData
     _ <- log.trace("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    _ <- log.trace(s"session_id = ${rd.user_session}")
-    _ <- log.trace(s"encoding_gzip = ${rd.cont_encoding_gzip_enabled}")
+    _ <- log.trace(s"session_id = ${rd.header.user_session}")
+    _ <- log.trace(s"encoding_gzip = ${rd.header.cont_encoding_gzip_enabled}")
     _ <- log.trace(s"dicts size = ${rd.queries.size}")
 
     _ <- URIO.foreach(rd.queries) { q =>
@@ -162,25 +162,25 @@ object ReqResp {
             checkErr => {
               val failJson =
                 DbErrorDesc("error", checkErr.getMessage, "Cause of exception", checkErr.getClass.getName).asJson
-              Task(compress(seqResQueries.cont_encoding_gzip_enabled, Printer.spaces2.print(failJson)))
+              Task(compress(seqResQueries.header.cont_encoding_gzip_enabled, Printer.spaces2.print(failJson)))
             },
             _ =>
               for {
                 str <- ZIO.foreachPar(seqResQueries.queries) {
-                  thisDict =>
-                    if (seqResQueries.thread_pool == "block") {
+                  thisQuery =>
+                    if (seqResQueries.header.thread_pool == "block") {
                       //run in separate blocking pool, "unlimited" thread count
-                      blocking(DbExecutor.getDbResultSet(configuredDbList, thisDict))
+                      blocking(DbExecutor.getDbResultSet(thisQuery, seqResQueries.header))
                     } else {
                       //run on sync pool, count of threads equal CPU.cores*2 (cycle)
-                      DbExecutor.getDbResultSet(configuredDbList, thisDict)
+                      DbExecutor.getDbResultSet(thisQuery, seqResQueries.header)
                     }
                 }.fold(
-                  err => compress(seqResQueries.cont_encoding_gzip_enabled,
+                  err => compress(seqResQueries.header.cont_encoding_gzip_enabled,
                     Printer.spaces2.print(DbErrorDesc("error", err.getMessage, "method[routeDicts]",
                       err.getClass.getName).asJson)
                   ),
-                  succ => compress(seqResQueries.cont_encoding_gzip_enabled,
+                  succ => compress(seqResQueries.header.cont_encoding_gzip_enabled,
                     Printer.spaces2.print(RequestResult("ok", DictsDataAccum(succ)).asJson)
                   )
                 )
@@ -192,7 +192,7 @@ object ReqResp {
         httpResp <- Task(HttpResponse(StatusCodes.OK, entity = resEntity))
 
         httpRespWithHeaders =
-        if (seqResQueries.cont_encoding_gzip_enabled == 1) {
+        if (seqResQueries.header.cont_encoding_gzip_enabled == 1) {
           httpResp.addHeader(`Content-Encoding`(HttpEncodings.gzip))
         } else {
           httpResp
