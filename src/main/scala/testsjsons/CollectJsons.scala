@@ -14,7 +14,7 @@ object CollectJsons {
       |                                       p_user_id =>  37317,
       |                                       p_user_role =>  3,
       |                                       p_budget =>  5,
-      |                                       p_ddate => 20200422,
+      |                                       p_ddate => 20190701,
       |                                       p_appg_date =>  20180701,
       |                                       p_book =>  9,
       |                                       p_tab =>  5,
@@ -26,7 +26,7 @@ object CollectJsons {
       |                                {
       |                                 "name" : "arm_data",
       |                                 "qt" : "func",
-      |                                 "query" : "select msk_arm_lead.pkg_econom.f_get_data from dual",
+      |                                 "query" : "msk_arm_lead.pkg_arm_data.f_get_data",
       |                                 "reftables" : ["msk_arm_lead.t_keys","msk_arm_lead.t_data"]
       |                               }
       |                   ]}
@@ -34,6 +34,7 @@ object CollectJsons {
 
   // 20190701,
   //select msk_arm_lead.pkg_arm_data.f_get_data from dual
+  //       msk_arm_lead.pkg_econom.f_get_data
 
   /*
                                   {
@@ -65,7 +66,7 @@ object CollectJsons {
       |                                       p_user_id =>  37317,
       |                                       p_user_role =>  1,
       |                                       p_budget =>  15,
-      |                                       p_ddate =>  20200415,
+      |                                       p_ddate =>  20190701,
       |                                       p_appg_date =>  null,
       |                                       p_book =>  null,
       |                                       p_tab =>  null,

@@ -36,9 +36,8 @@ object DbExecutor {
       case None => ()
     }
 
-    //val cstmt: OracleCallableStatement  = conn.prepareCall(" select msk_arm_lead.pkg_econom.f_get_data from dual"/*query.query*/).asInstanceOf[OracleCallableStatement]
-
-    val call :CallableStatement = conn.prepareCall ("{ ? = call msk_arm_lead.pkg_econom.f_get_data}");
+//    val call :CallableStatement = conn.prepareCall ("{ ? = call msk_arm_lead.pkg_econom.f_get_data}");
+    val call :CallableStatement = conn.prepareCall (s"{ ? = call ${query.query}}");
     call.registerOutParameter (1, OracleTypes.CURSOR);
  //   cstmt.registerReturnParameter(1, Types.REF_CURSOR)
     //cstmt.executeQuery()
@@ -145,7 +144,7 @@ object DbExecutor {
          * ║ ORA-06512: на  "MSK_ARM_LEAD.PKG_ARM_DATA", line 2217
          * And we need produce result json with error description.
         */
-        hashKey: Int = reqQuery.hashCode() //todo: add user_session
+        hashKey: Int = reqHeader.hashCode() + reqQuery.hashCode() //reqQuery.hashCode()  // todo: add user_session
         dictRows <- dsCursor
         _ <- cache.set(hashKey, CacheEntity(System.currentTimeMillis, dictRows, reqQuery.reftables.getOrElse(Seq())))
         ds <- dsCursor
