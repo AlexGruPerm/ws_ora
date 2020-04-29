@@ -1,0 +1,14 @@
+1) Add new structure - UcpStat
+(
+ts,ac,bc,...different timings
+)
+store it as Ref in UCP and populate with ucp for WebUI monitor.
+
+2) Cache entity synchronize, need store full request information.
+
+3) WebUI possibilities to change ucp properties.
+
+4) Some queries can be related from sysdate. We need add key
+nocache: 1  - Option - by default everything is cached and this key is absent.
+
+5)

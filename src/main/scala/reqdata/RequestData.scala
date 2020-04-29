@@ -14,11 +14,14 @@ import io.circe._
 import io.circe.parser._
 object CustDecoders {
 
+  val r = scala.util.Random
+
   //todo: refactor c.c. name Dict into Query
   implicit val decoderDict: Decoder[Query] = Decoder.instance { h =>
     for {
       name <- h.get[String]("name")
       qt <- h.get[Option[String]]("qt")
+      query <- h.get[String]("query")
       rt <- h.get[Option[Seq[String]]]("reftables")
       qtRes = qt.getOrElse("unsettled").toLowerCase match {
         case "func" => func
@@ -26,7 +29,8 @@ object CustDecoders {
         case "select" => select
         case _ => unknown
       }
-    } yield Query(name,qtRes,rt)
+    } yield Query(name,qtRes,query,rt)
+            //Query(name + r.nextInt(1000).toString,qtRes,rt)
   }
 
   implicit val decoderRequestData: Decoder[RequestData] = Decoder.instance { h =>
@@ -50,6 +54,7 @@ object CustDecoders {
 case class Query(
                  name: String,
                  qt : queryType,
+                 query :String,
                  reftables: Option[Seq[String]]
                )
 

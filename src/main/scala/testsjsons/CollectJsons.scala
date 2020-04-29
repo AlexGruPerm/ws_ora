@@ -12,25 +12,43 @@ object CollectJsons {
       |                  "context" : "begin
       |                                    MSK_ARM_LEAD.PKG_ARM_STRUCT.set_context_variables(
       |                                       p_user_id =>  37317,
-      |                                       p_user_role =>  1,
-      |                                       p_budget =>  15,
-      |                                       p_ddate =>  20200415,
-      |                                       p_appg_date =>  null,
-      |                                       p_book =>  null,
-      |                                       p_tab =>  null,
-      |                                       p_slice =>  null,
+      |                                       p_user_role =>  3,
+      |                                       p_budget =>  5,
+      |                                       p_ddate =>  20190701,
+      |                                       p_appg_date =>  20180701,
+      |                                       p_book =>  9,
+      |                                       p_tab =>  5,
+      |                                       p_slice =>  300,
       |                                       p_pok =>  null);
       |                               end;
       |                              ",
       |                  "queries": [
       |                                {
-      |                                 "name" : "query1",
+      |                                 "name" : "arm_data",
       |                                 "qt" : "func",
-      |                                 "query" : "select msk_arm_lead.pkg_econom.f_get_data from dual",
-      |                                 "reftables" : ["msk_arm_lead.econom_indicator_tab","msk_arm_lead.econom_data"]
+      |                                 "query" : "select msk_arm_lead.pkg_arm_data.f_get_data from dual",
+      |                                 "reftables" : ["msk_arm_lead.t_keys","msk_arm_lead.t_data"]
       |                               }
       |                   ]}
       """.stripMargin
+
+  /*
+                                  {
+                                 "name" : "query1",
+                                 "qt" : "func",
+                                 "query" : "select msk_arm_lead.pkg_econom.f_get_data from dual",
+                                 "reftables" : ["msk_arm_lead.econom_indicator_tab","msk_arm_lead.econom_data"]
+                               },
+*/
+
+/*
+                                {
+                                 "name" : "s1",
+                                 "qt" : "select",
+                                 "query" : "select * from t_data td where td.ddate=20190701 and id_pok=2443",
+                                 "reftables" : ["msk_arm_lead.t_data"]
+                               }
+  */
 
   val reqJsonOra2 =
     """

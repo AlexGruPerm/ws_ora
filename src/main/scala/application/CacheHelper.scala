@@ -80,8 +80,10 @@ object CacheHelper {
     import zio.duration._
     for {
       conf <- ZIO.access[Config[WsConfig]](_.get)
-      pgsessSrc <- ZIO.access[UcpZLayer](_.get)
-      pgsessLs <- pgsessSrc.getConnection /*orElse
+      ucp <- ZIO.access[UcpZLayer](_.get)
+      conn <- ucp.getConnection
+
+      /*orElse
         PgConnection(conf).sess.retry(Schedule.recurs(3) && Schedule.spaced(2.seconds))*/
 
       /*
@@ -95,6 +97,8 @@ object CacheHelper {
       }
       */
       notifs :Notifications = Set("schema1.table1","schema2.table2")//.toArray[Notifications]
+
+      _ = conn.close()
 
       _ <- cacheCleaner(notifs/*notifications*/)
 

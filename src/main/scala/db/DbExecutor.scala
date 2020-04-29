@@ -21,7 +21,7 @@ object DbExecutor {
   private def execFunction(conn: Connection, query: Query) :List[List[DictRow]] ={
     val stmt = conn.createStatement()
     conn.setClientInfo("OCSID.ACTION", "act_1")
-    val rs = stmt.executeQuery("select * from msk_arm_lead.econom_data_source")
+    val rs = stmt.executeQuery(query.query/*"select * from msk_arm_lead.econom_data_source"*/)
     conn.close()
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
@@ -54,10 +54,11 @@ object DbExecutor {
   }
 
   private def getCursorData(beginTs: Long, conn: Connection, query: Query, openConnDur: Long):
-  ZIO[ZEnvConfLogCache, Throwable, DictDataRows] /*Task[DictDataRows]*/ = {
+  ZIO[ZEnvConfLogCache, Throwable, DictDataRows] = {
     query.qt match {
       case _: func.type => {
         val rows = execFunction(conn, query)
+        log.info(s"getCursorData [func] ${query.name}")
         Task(
           DictDataRows(
             query.name,
@@ -91,23 +92,19 @@ object DbExecutor {
   private def getDataFromDb: Query => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] = reqQuery =>
       for {
         cache <- ZIO.access[CacheManager](_.get)
-        thisConfig = ZIO.access[DbConfig]
         ucp <- ZIO.access[UcpZLayer](_.get)
         _ <- CacheLog.out("getDataFromDb", false)
-        /*
-        thisConfig <-
-          if (configuredDb.name == trqDict.db) {
-            Task(configuredDb)
-          }
-          else {
-            IO.fail(new NoSuchElementException(s"Database name [${trqDict.db}] not found in config."))
-          }
-        */
         tBeforeOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
         thisConnection <- ucp.getConnection //effectBlocking(pgPool.sess(thisConfig, trqDict)).refineToOrDie[PSQLException]
         tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
         openConnDuration = tAfterOpenConn - tBeforeOpenConn
-        dsCursor = getCursorData(tBeforeOpenConn, thisConnection, reqQuery, openConnDuration)
+        dsCursor = getCursorData(tBeforeOpenConn, thisConnection, reqQuery, openConnDuration).refineToOrDie[java.sql.SQLException]
+        /**
+         * in getCursorData we can get error like this :
+         * ║ java.sql.SQLException: ORA-06503: PL/SQL: Function return without value
+         * ║ ORA-06512: на  "MSK_ARM_LEAD.PKG_ARM_DATA", line 2217
+         * And we need produce result json with error description.
+        */
         hashKey: Int = reqQuery.hashCode() //todo: add user_session
         dictRows <- dsCursor
         _ <- cache.set(hashKey, CacheEntity(System.currentTimeMillis, dictRows, reqQuery.reftables.getOrElse(Seq())))

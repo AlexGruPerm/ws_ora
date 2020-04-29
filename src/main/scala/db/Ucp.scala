@@ -35,7 +35,6 @@ object Ucp {
       override def setMaxPoolSize(newMaxPoolSize: Int): Task[Int] = {
         ref.update(cp => {
           cp.pds.setMaxPoolSize(newMaxPoolSize)
-          //cp.pds.setMinPoolSize(newMaxPoolSize)
           cp
         }
         ) *> getMaxPoolSize

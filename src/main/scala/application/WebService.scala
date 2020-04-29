@@ -38,14 +38,14 @@ object WebService {
           fiber <- startRequestHandler(actorSystem).forkDaemon
           _ <- fiber.join
 
-         //thisConnection = PgConnection(conf.dbListenConfig)
-
           cacheCheckerValidator <-
-            ucpMonitor.repeat(Schedule.spaced(3.second)).forkDaemon
+            cacheValidator.repeat(Schedule.spaced(3.second)).forkDaemon *>
+              cacheChecker.repeat(Schedule.spaced(2.second)).forkDaemon *>
+              ucpMonitor.repeat(Schedule.spaced(3.second)).forkDaemon *>
+              readUserInterrupt(fiber, actorSystem).repeat(Schedule.spaced(1.second)).forkDaemon
 
           /*
-          cacheCheckerValidator <- cacheValidator
-            .repeat(Schedule.spaced(3.second)).forkDaemon *>
+          cacheCheckerValidator <- cacheValidator.repeat(Schedule.spaced(3.second)).forkDaemon *>
             cacheChecker.repeat(Schedule.spaced(2.second)).forkDaemon *>
             ucpMonitor.repeat(Schedule.spaced(3.second)).forkDaemon *>
             readUserInterrupt(fiber,actorSystem).repeat(
