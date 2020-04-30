@@ -39,18 +39,11 @@ object WebService {
           _ <- fiber.join
 
           cacheCheckerValidator <-
-            cacheValidator.repeat(Schedule.spaced(3.second)).forkDaemon *>
+              //todo: temporary commented.
+              //cacheValidator.repeat(Schedule.spaced(3.second)).forkDaemon *>
               cacheChecker.repeat(Schedule.spaced(2.second)).forkDaemon *>
-              ucpMonitor.repeat(Schedule.spaced(3.second)).forkDaemon *>
-              readUserInterrupt(fiber, actorSystem).repeat(Schedule.spaced(1.second)).forkDaemon
-
-          /*
-          cacheCheckerValidator <- cacheValidator.repeat(Schedule.spaced(3.second)).forkDaemon *>
-            cacheChecker.repeat(Schedule.spaced(2.second)).forkDaemon *>
-            ucpMonitor.repeat(Schedule.spaced(3.second)).forkDaemon *>
-            readUserInterrupt(fiber,actorSystem).repeat(
-              Schedule.spaced(1.second)).forkDaemon
-          */
+              ucpMonitor.repeat(Schedule.spaced(10.second)).forkDaemon
+              //readUserInterrupt(fiber, actorSystem).repeat(Schedule.spaced(1.second)).forkDaemon
 
           _ <- cacheCheckerValidator.join //todo: may be divide on 2 separate forkDeamon
         } yield ()

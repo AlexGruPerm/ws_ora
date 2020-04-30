@@ -1,7 +1,12 @@
 package env
 
 import data.{Cache, CacheEntity, DictDataRows}
-import zio.{Has, Ref, Tagged, UIO, ZLayer}
+import zio.logging.Logging.Logging
+import zio.logging.log
+import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, clock}
+import java.util.concurrent.TimeUnit
+
+import zio.clock.currentTime
 
 object CacheObject {
 
@@ -23,20 +28,18 @@ object CacheObject {
 
       override def getCacheValue: UIO[Cache] = ref.get.map(c => c)
 
-      override def get(key: Int): UIO[Option[CacheEntity]] = {
-        //todo: here we need update CacheEntity tslru
-        /*
-        ref.update(cvu => cvu.copy(HeartbeatCounter = cvu.HeartbeatCounter + 1,
-          dictsMap = cvu.dictsMap.updated(key,cvu.dictsMap.get(key).t)))
-        */
-        ref.get.map(_.dictsMap.get(key))
-      }
-
+      override def get(key: Int): UIO[Option[CacheEntity]] = for {
+        _ <- ref.get.map(_.dictsMap.get(key)).flatMap(r =>
+          r.fold(UIO.succeed(()))(
+            SomeCe => this.set(key, SomeCe.copy(tslru = System.currentTimeMillis))
+          )
+        )
+        r <- ref.get.map(_.dictsMap.get(key))
+      } yield r
 
       override def set(key: Int, value: CacheEntity): UIO[Unit] = {
        //println(s"METHOD SET - CURR HBC = ${ref.get.map(_.HeartbeatCounter)}")
-       ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 100,
-          dictsMap = cv.dictsMap + (key -> value)))
+       ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 1, dictsMap = cv.dictsMap + (key -> value)))
     }
 
       override def remove(keys: Seq[Int]): UIO[Unit] =
@@ -45,14 +48,16 @@ object CacheObject {
     }
 
     def refCache(implicit tag: Tagged[CacheManager.Service]
-                      ): ZLayer[Any, Nothing, CacheManager] = {
+                      ): ZLayer[clock.Clock, Nothing, CacheManager] = {
       ZLayer.fromEffect[Any,
         Nothing,
         CacheManager.Service
-      ]{
-        Ref.make(Cache(0, System.currentTimeMillis,
-          Map(1 -> CacheEntity(DictDataRows("empty", 0L, 0L, 0L, List(List())),Seq()))))
-          .map(refEmpty => new refCache(refEmpty))
+      ] {
+        Ref.make(
+          Cache(0, System.currentTimeMillis,
+            Map(1 -> CacheEntity(System.currentTimeMillis, System.currentTimeMillis, DictDataRows("empty", 0L, 0L, 0L, List(List())), Seq()))
+          )
+        ).map(refEmpty => new refCache(refEmpty))
       }
     }
 

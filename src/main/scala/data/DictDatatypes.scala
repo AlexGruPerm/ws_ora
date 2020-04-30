@@ -43,13 +43,15 @@ case class RequestResult(status: String,
                          data: DictsDataAccum)
 //todo: maybe add prefix in response, is it from cache or not!?
 
-
+// sizeBytes: Long,
 case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, reftables: Seq[String])
 
+/*
 object CacheEntity {
    def apply(data: DictDataRows, reftables: Seq[String]): CacheEntity =
     new CacheEntity(System.currentTimeMillis, System.currentTimeMillis, data, reftables)
 }
+*/
 
 /**
  * class for cache entity instance.
@@ -57,6 +59,10 @@ object CacheEntity {
  * One cache entity ~= one dictionary - DictDataRows
 */
 case class Cache(HeartbeatCounter: Int, cacheCreatedTs: Long = System.currentTimeMillis, dictsMap: Map[Int, CacheEntity])
+
+object RowType{
+ type rows = List[List[DictRow]]
+}
 
 
 

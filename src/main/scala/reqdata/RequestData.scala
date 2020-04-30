@@ -5,7 +5,8 @@ import io.circe.generic.JsonCodec
 
 
 sealed trait queryType
-case object func extends queryType
+case object func_simple extends queryType
+case object func_cursor extends queryType
 case object proc extends queryType
 case object select extends queryType
 case object unknown extends queryType
@@ -23,13 +24,14 @@ object CustDecoders {
       qt <- h.get[Option[String]]("qt")
       query <- h.get[String]("query")
       rt <- h.get[Option[Seq[String]]]("reftables")
-      qtRes = qt.getOrElse("unsettled").toLowerCase match {
-        case "func" => func
+      qtType = qt.getOrElse("unsettled").toLowerCase match {
+        case "func_simple" => func_simple
+        case "func_cursor" => func_cursor
         case "proc" => proc
         case "select" => select
         case _ => unknown
       }
-    } yield Query(name,qtRes,query,rt)
+    } yield Query(name,qtType,query,rt)
             //Query(name + r.nextInt(1000).toString,qtRes,rt)
   }
 

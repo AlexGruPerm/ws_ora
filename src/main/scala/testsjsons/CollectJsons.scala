@@ -25,7 +25,7 @@ object CollectJsons {
       |                  "queries": [
       |                                {
       |                                 "name" : "arm_data",
-      |                                 "qt" : "func",
+      |                                 "qt" : "func_cursor",
       |                                 "query" : "msk_arm_lead.pkg_arm_data.f_get_data",
       |                                 "reftables" : ["msk_arm_lead.t_keys","msk_arm_lead.t_data"]
       |                               }

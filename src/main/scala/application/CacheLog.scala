@@ -13,9 +13,21 @@ object CacheLog {
     for {
       cache <- ZIO.access[CacheManager](_.get)
       cv <- cache.getCacheValue
+      _ <- log.trace(s"[$effName] hb : ${cv.HeartbeatCounter} bts : ${cv.cacheCreatedTs} size : ${cv.dictsMap.size}")
+      /*
       _ <- log.trace(s"[$effName] HeartbeatCounter = ${cv.HeartbeatCounter} " +
         s"bornTs = ${cv.cacheCreatedTs} dictsMap.size = ${cv.dictsMap.size}")
-      _ <- ZIO.foreach(cv.dictsMap)(ce => log.trace(s"Cache element key=${ce._1}  ts=${ce._2.tscreate}"))
+      */
+      _ <- ZIO.foreach(cv.dictsMap)(ce =>
+        if (ce._1 != 1) {
+          log.trace(s"    [Cache element] key ${ce._1}") *>
+          log.trace(s"    tscreate  ${ce._2.tscreate}") *>
+          log.trace(s"    tslru     ${ce._2.tslru}")
+        }
+        else {
+          UIO.succeed(())
+        }
+      )
       _ <- if (incrHeadrbeat) {
         cache.addHeartbeat
       } else {

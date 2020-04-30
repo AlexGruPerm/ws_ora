@@ -1,3 +1,5 @@
+0) Create new db schema for all possible cases of calls.
+
 1) Add new structure - UcpStat
 (
 ts,ac,bc,...different timings
@@ -11,4 +13,14 @@ store it as Ref in UCP and populate with ucp for WebUI monitor.
 4) Some queries can be related from sysdate. We need add key
 nocache: 1  - Option - by default everything is cached and this key is absent.
 
-5)
+5) Use heap informatin
+// Get current size of heap in bytes
+long heapSize = Runtime.getRuntime().totalMemory();
+
+// Get maximum size of heap in bytes. The heap cannot grow beyond this size.
+// Any attempt will result in an OutOfMemoryException.
+long heapMaxSize = Runtime.getRuntime().maxMemory();
+
+// Get amount of free memory within the heap in bytes. This size will increase
+// after garbage collection and decrease as new objects are created.
+long heapFreeSize = Runtime.getRuntime().freeMemory();

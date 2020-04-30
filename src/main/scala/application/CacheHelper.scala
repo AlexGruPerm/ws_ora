@@ -34,9 +34,12 @@ object CacheHelper {
     for {
       cache <- ZIO.access[CacheManager](_.get)
       cv <- cache.getCacheValue
-      _ <- log.info(s"All keys = ${cv.dictsMap.keySet}")
+      //_ <- log.info(s"All keys = ${cv.dictsMap.keySet}")
       foundKeys: Seq[Int] = hashKeysForRemove(cv.dictsMap, tableName)
-      _ <- log.info(s"keys for removing from cache $foundKeys")
+      _ <- if (foundKeys.nonEmpty)
+        log.info(s"keys for removing from cache $foundKeys")
+      else
+        UIO.succeed(())
       _ <- cache.remove(foundKeys)
     } yield ()
 
@@ -44,16 +47,10 @@ object CacheHelper {
   val cacheCleaner: Notifications => ZIO[ZEnvLogCache, Nothing, Unit] = notifications =>
     for {
       _ <- ZIO.foreach(notifications) { nt =>
-        //if (nt. == "change") {
           for {
-            //_ <- log.info(s"Notif: name = ${nt.getName} pid = ${nt.getPID} parameter = ${nt.getParameter}")
-            _ <- log.info(s"Notif: $nt")
+            _ <- log.trace(s"Notif: $nt")
             _ <- removeFromCacheByRefTable(nt)
-          } yield UIO.succeed(())
-        /*} else {
-          UIO.succeed(())
-        }
-        */
+          } yield ()//UIO.succeed(())
       }.catchAllCause {
         e => log.error(s" cacheValidator Exception $e")
       }
@@ -97,11 +94,8 @@ object CacheHelper {
       }
       */
       notifs :Notifications = Set("schema1.table1","schema2.table2")//.toArray[Notifications]
-
       _ = conn.close()
-
       _ <- cacheCleaner(notifs/*notifications*/)
-
     } yield ()
   }
 
