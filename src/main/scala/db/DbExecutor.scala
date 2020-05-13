@@ -6,7 +6,7 @@ import java.util.NoSuchElementException
 
 import application.CacheLog
 import data.RowType.rows
-import data.{CacheEntity, DictDataRows, DictRow}
+import data.{CacheEntity, DbErrorException, DictDataRows, DictRow}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
@@ -179,7 +179,7 @@ object DbExecutor {
         ucp <- ZIO.access[UcpZLayer](_.get)
         _ <- CacheLog.out("getDataFromDb", false)
         tBeforeOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
-        thisConnection <- ucp.getConnection //effectBlocking(pgPool.sess(thisConfig, trqDict)).refineToOrDie[PSQLException]
+        thisConnection <- ucp.getConnection
         tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
         openConnDuration = tAfterOpenConn - tBeforeOpenConn
         dsCursor = getDictData(tBeforeOpenConn, reqHeader, reqQuery, openConnDuration).refineToOrDie[java.sql.SQLException]
@@ -212,10 +212,13 @@ object DbExecutor {
           case Some(s: CacheEntity) =>
             log.trace(s"--- [VALUE GOT FROM CACHE] [${s.dictDataRows.name}] ---") *>
               ZIO.succeed(s.dictDataRows)
-          case None => for {
+          case None => (for {
             db <- getDataFromDb(reqHeader,trqDict)
             _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")
-          } yield db
+          } yield db).catchSome{
+            case err: java.sql.SQLException =>
+              ZIO.fail(DbErrorException(err.getMessage+" query="+trqDict.query,err.getCause))
+          }
         }
       } yield dictRows
 
