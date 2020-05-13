@@ -177,7 +177,7 @@ object ReqResp {
                     }
                 }.fold(
                   err => compress(seqResQueries.header.cont_encoding_gzip_enabled,
-                    Printer.spaces2.print(DbErrorDesc("error", err.getMessage, "method[routeDicts]", // todo #1: Add here info about query !
+                    Printer.spaces2.print(DbErrorDesc("error", err.getMessage, "routeQueries", // todo #1: Add here info about query !
                       err.getClass.getName).asJson)
                   ),
                   succ => compress(seqResQueries.header.cont_encoding_gzip_enabled,

@@ -217,7 +217,7 @@ object DbExecutor {
             _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")
           } yield db).catchSome{
             case err: java.sql.SQLException =>
-              ZIO.fail(DbErrorException(err.getMessage+" query="+trqDict.query,err.getCause))
+              ZIO.fail(DbErrorException(err.getMessage+" query=xyz", err.getCause, trqDict.query))
           }
         }
       } yield dictRows
