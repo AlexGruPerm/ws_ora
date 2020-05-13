@@ -170,14 +170,14 @@ object ReqResp {
                   thisQuery =>
                     if (seqResQueries.header.thread_pool == "block") {
                       //run in separate blocking pool, "unlimited" thread count
-                      blocking(DbExecutor.getDbResultSet(thisQuery, seqResQueries.header))
+                      blocking(DbExecutor.getDbResultSet(thisQuery, seqResQueries.header)) // todo #1: Add additional info into err, to identify problem query
                     } else {
                       //run on sync pool, count of threads equal CPU.cores*2 (cycle)
-                      DbExecutor.getDbResultSet(thisQuery, seqResQueries.header)
+                      DbExecutor.getDbResultSet(thisQuery, seqResQueries.header) // todo #1: Add additional info into err, to identify problem query
                     }
                 }.fold(
                   err => compress(seqResQueries.header.cont_encoding_gzip_enabled,
-                    Printer.spaces2.print(DbErrorDesc("error", err.getMessage, "method[routeDicts]",
+                    Printer.spaces2.print(DbErrorDesc("error", err.getMessage, "method[routeDicts]", // todo #1: Add here info about query !
                       err.getClass.getName).asJson)
                   ),
                   succ => compress(seqResQueries.header.cont_encoding_gzip_enabled,

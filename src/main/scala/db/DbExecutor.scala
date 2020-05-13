@@ -162,8 +162,7 @@ object DbExecutor {
         log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
           Task(execSimpleQuery(conn, reqHeader, query))
       }
-      case _ =>
-        Task(List(List(DictRow("xxx", "yyy"))))
+      case _ => Task(List(List(DictRow("xxx", "yyy"))))
     }
 
     ddr <- Task(DictDataRows(query.name, openConnDur, 123L, 234L, rows))
