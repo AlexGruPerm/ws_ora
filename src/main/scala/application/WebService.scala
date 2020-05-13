@@ -33,7 +33,7 @@ object WebService {
       actorSystem =>
         for {
           _ <- CacheLog.out("WsServer",true)
-          cfg <- ZIO.access[Config[WsConfig]](_.get)
+          //cfg <- ZIO.access[Config[WsConfig]](_.get)
 
           fiber <- startRequestHandler(actorSystem).forkDaemon
           _ <- fiber.join

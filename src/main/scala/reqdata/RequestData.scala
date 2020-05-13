@@ -7,7 +7,7 @@ import io.circe.generic.JsonCodec
 sealed trait queryType
 case object func_simple extends queryType
 case object func_cursor extends queryType
-case object proc extends queryType
+case object proc_cursor extends queryType
 case object select extends queryType
 case object unknown extends queryType
 
@@ -27,7 +27,7 @@ object CustDecoders {
       qtType = qt.getOrElse("unsettled").toLowerCase match {
         case "func_simple" => func_simple
         case "func_cursor" => func_cursor
-        case "proc" => proc
+        case "proc_cursor" => proc_cursor
         case "select" => select
         case _ => unknown
       }

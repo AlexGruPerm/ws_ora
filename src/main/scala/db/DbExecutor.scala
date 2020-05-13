@@ -11,7 +11,7 @@ import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
 import oracle.jdbc.{OracleCallableStatement, OracleTypes}
-import reqdata.{Query, RequestHeader, func_cursor, proc, select}
+import reqdata.{Query, RequestHeader, func_cursor, func_simple, proc_cursor, select}
 import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
 import zio.logging.log
 import zio.{Task, ZIO, clock}
@@ -20,27 +20,26 @@ object DbExecutor {
 
   type Notifications = Set[String]
 
-  /**
-   * Optimizationm scrollable r.s.
-   * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
-  */
-  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows ={
-  //  val ucp = ZIO.access[UcpZLayer](_.get)//.map(ucp => ucp.getConnection)
-  //  val conn :Connection = ucp.
-    val stmt = conn.createStatement()
-    //conn.setClientInfo("OCSID.ACTION", )
-
-    //todo: remove into separate method.
+  private def execGlobalCursor(conn: Connection, reqHeader: RequestHeader) :Unit ={
     reqHeader.context match {
       case Some(ctx) => {
         val context = ctx.trim.replaceAll(" +", " ")
         println(s"SET CONTEXT ${context}")
-        stmt.execute(context)
+        conn.createStatement.execute(context)
       }
       case None => ()
     }
+  }
 
-    val call :CallableStatement = conn.prepareCall (s"{ ? = call ${query.query}}");
+  /**
+   * Optimizationm scrollable r.s.
+   * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
+  */
+  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+    //conn.setClientInfo("OCSID.ACTION", )
+    execGlobalCursor(conn, reqHeader)
+
+    val call :CallableStatement = conn.prepareCall (s"{ ? = call ${query.query}}")
     call.registerOutParameter (1, OracleTypes.CURSOR);
     call.execute()
 
@@ -62,18 +61,106 @@ object DbExecutor {
     rows
   }
 
+  private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+    //conn.setClientInfo("OCSID.ACTION", )
+    execGlobalCursor(conn, reqHeader)
 
-  private def getCursorData(beginTs: Long, reqHeader: RequestHeader, query: Query, openConnDur: Long):
+    val rs :ResultSet = conn.createStatement.executeQuery(s"select ${query.query} as result from dual")
+
+    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
+      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
+
+    println(s"   columns.size : ${columns.size}")
+    //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
+
+    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+      columns.map(
+        cname => DictRow(cname._1, rs.getString(cname._1))
+      )
+    }.toList
+
+    conn.close()
+    rows
+  }
+
+  private def execSimpleQuery(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+    //conn.setClientInfo("OCSID.ACTION", )
+    execGlobalCursor(conn, reqHeader)
+
+    val rs :ResultSet = conn.createStatement.executeQuery(s"${query.query}")
+
+    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
+      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
+
+    println(s"   columns.size : ${columns.size}")
+    //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
+
+    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+      columns.map(
+        cname => DictRow(cname._1, rs.getString(cname._1))
+      )
+    }.toList
+
+    conn.close()
+    rows
+  }
+
+  private def execProcCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+    //conn.setClientInfo("OCSID.ACTION", )
+    execGlobalCursor(conn, reqHeader)
+
+    //val call :CallableStatement = conn.prepareCall(s"begin ${query.query}(?); end;")
+
+    val call :CallableStatement = conn.prepareCall(s"begin ${query.query}; end;")
+    call.registerOutParameter (1, OracleTypes.CURSOR);
+    call.execute()
+
+    val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
+
+    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
+      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
+
+    println(s"   columns.size : ${columns.size}")
+    //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
+
+    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+      columns.map(
+        cname => DictRow(cname._1, rs.getString(cname._1))
+      )
+    }.toList
+
+    conn.close()
+    rows
+  }
+
+  private def getDictData(beginTs: Long, reqHeader: RequestHeader, query: Query, openConnDur: Long):
   ZIO[ZEnvConfLogCache, Throwable, DictDataRows] = for {
-    _ <- log.info(s"getCursorData ${query.name} - ${query.qt.getClass.getTypeName}")
-
+    _ <- log.info(s"getDictData ${query.name} - ${query.qt.getClass.getTypeName}")
     ucp <- ZIO.access[UcpZLayer](_.get)
     conn <- ucp.getConnection
 
+    /**
+     *  func_simple
+     *  func_cursor
+     *  proc_cursor
+     *  select
+    */
     rows <- query.qt match {
-      case _: func_cursor.type => {
+      case _ : func_simple.type  => {
+        log.info(">>>>>>>>>>>>> calling execFunctionSimple >>>>>>>>>>>>>>>") *>
+          Task(execFunctionSimple(conn, reqHeader, query))
+      }
+      case _ : func_cursor.type => {
         log.info(">>>>>>>>>>>>> calling execFunctionCursor >>>>>>>>>>>>>>>") *>
         Task(execFunctionCursor(conn, reqHeader, query))
+      }
+      case _ : proc_cursor.type => {
+        log.info(">>>>>>>>>>>>> calling execProcCursor >>>>>>>>>>>>>>>") *>
+          Task(execProcCursor(conn, reqHeader, query))
+      }
+      case _ : select.type  => {
+        log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
+          Task(execSimpleQuery(conn, reqHeader, query))
       }
       case _ =>
         Task(List(List(DictRow("xxx", "yyy"))))
@@ -82,28 +169,7 @@ object DbExecutor {
     ddr <- Task(DictDataRows(query.name, openConnDur, 123L, 234L, rows))
   } yield ddr
 
-  /*
-  private def getCursorData(beginTs: Long, /*conn: Connection,*/ reqHeader: RequestHeader, query: Query, openConnDur: Long):
-  ZIO[ZEnvConfLogCache, Throwable, DictDataRows] = {
-    log.info(s"getCursorData ${query.name} - ${query.qt.getClass.getTypeName}")
 
-    query.qt match {
-      case _: func_cursor.type => {
-        val rows = execFunctionCursor(/*conn,*/ reqHeader, query)
-        Task(DictDataRows(query.name, openConnDur, 123L, 234L, rows))
-      }
-      /*
-      case _: proc.type => Task(execProcedure(conn,query))
-      case _: select.type => Task(execSelect(conn,query))
-      */
-      case _ =>
-        Task(DictDataRows(query.name,openConnDur, 0L, 0L, List(List(DictRow("xxx", "yyy"))) // rows
-          )
-        )
-    }
-
-  }
-  */
 
   import zio.blocking._
 
@@ -117,9 +183,9 @@ object DbExecutor {
         thisConnection <- ucp.getConnection //effectBlocking(pgPool.sess(thisConfig, trqDict)).refineToOrDie[PSQLException]
         tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
         openConnDuration = tAfterOpenConn - tBeforeOpenConn
-        dsCursor = getCursorData(tBeforeOpenConn, reqHeader, reqQuery, openConnDuration).refineToOrDie[java.sql.SQLException]
+        dsCursor = getDictData(tBeforeOpenConn, reqHeader, reqQuery, openConnDuration).refineToOrDie[java.sql.SQLException]
         /**
-         * in getCursorData we can get error like this :
+         * in getDictData we can get error like this :
          * ║ java.sql.SQLException: ORA-06503: PL/SQL: Function return without value
          * ║ ORA-06512: на  "MSK_ARM_LEAD.PKG_ARM_DATA", line 2217
          * And we need produce result json with error description.
