@@ -10,7 +10,9 @@ begin
    end loop;
 end;
 */
-select s.SID,
+select s.USERNAME,
+       s.MACHINE,
+       s.SID,
        s.PROCESS,
        s.PORT,
        s.TERMINAL,
@@ -20,7 +22,7 @@ select s.SID,
        s.STATE,
        s.STATUS
 from v$session s
-where s.USERNAME='MSK_ARM_LEAD'
+where s.USERNAME='WSORA'
   and s.OSUSER='yakushev'
   and s.MACHINE='PRM-WS-0006'
 

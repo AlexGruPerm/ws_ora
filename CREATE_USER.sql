@@ -13,6 +13,7 @@ grant select on SYS.V_$STATNAME to WSORA;
 
 grant connect to WSORA;
 grant resource to WSORA;
+grant dba to wsora;
 
 alter user WSORA
-  default role connect, resource;
+                                       default role connect,dba, resource;

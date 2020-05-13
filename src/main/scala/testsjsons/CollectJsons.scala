@@ -54,6 +54,12 @@ object CollectJsons {
       |                                 "reftables" : ["wsora.dat"]
       |                                },
       |                                {
+      |                                 "name" : "proc_v3",
+      |                                 "qt" : "proc_cursor",
+      |                                 "query" : "wsora.pkg_test.proc_v2(?, p_id_oiv => 1)",
+      |                                 "reftables" : ["wsora.dat"]
+      |                                },
+      |                                {
       |                                 "name" : "func_simple_1",
       |                                 "qt" : "func_simple",
       |                                 "query" : "wsora.pkg_test.func_simple",
