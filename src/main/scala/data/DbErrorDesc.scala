@@ -5,7 +5,7 @@ import io.circe.generic.JsonCodec
 
 final case class DbErrorException(private val message: String = "",
                                   private val cause: Throwable = None.orNull,
-                                  private val query: String = "no info")
+                                  query: String = "no info")
   extends Exception(message, cause)
 
 /**

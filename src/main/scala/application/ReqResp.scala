@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.headers.`Content-Encoding`
 import akka.http.scaladsl.model.HttpRequest
 import akka.stream.scaladsl.FileIO
 import akka.util.ByteString
-import data.{DbErrorDesc, DictsDataAccum, RequestResult}
+import data.{DbErrorDesc, DbErrorException, DictsDataAccum, RequestResult}
 import db.DbExecutor
 import env.CacheObject.CacheManager
 import env.EnvContainer.{ZEnvConfLogCache, ZEnvLog, ZEnvLogCache}
@@ -170,16 +170,20 @@ object ReqResp {
                   thisQuery =>
                     if (seqResQueries.header.thread_pool == "block") {
                       //run in separate blocking pool, "unlimited" thread count
-                      blocking(DbExecutor.getDbResultSet(thisQuery, seqResQueries.header)) // todo #1: Add additional info into err, to identify problem query
+                      blocking(DbExecutor.getDbResultSet(thisQuery, seqResQueries.header))
                     } else {
                       //run on sync pool, count of threads equal CPU.cores*2 (cycle)
-                      DbExecutor.getDbResultSet(thisQuery, seqResQueries.header) // todo #1: Add additional info into err, to identify problem query
+                      DbExecutor.getDbResultSet(thisQuery, seqResQueries.header)
                     }
                 }.fold(
-                  err => compress(seqResQueries.header.cont_encoding_gzip_enabled,
-                    Printer.spaces2.print(DbErrorDesc("error", err.getMessage, "routeQueries", // todo #1: Add here info about query !
-                      err.getClass.getName).asJson)
-                  ),
+                  {
+                    case dbex: DbErrorException => compress(seqResQueries.header.cont_encoding_gzip_enabled,
+                      Printer.spaces2.print(DbErrorDesc("Caught db error", dbex.getMessage, "routeQueries",
+                        dbex.getClass.getName, dbex.query).asJson))
+                    case er: Exception => compress(seqResQueries.header.cont_encoding_gzip_enabled,
+                      Printer.spaces2.print(DbErrorDesc("Uncaught error", er.getMessage, "routeQueries",
+                        er.getClass.getName).asJson))
+                  },
                   succ => compress(seqResQueries.header.cont_encoding_gzip_enabled,
                     Printer.spaces2.print(RequestResult("ok", DictsDataAccum(succ)).asJson)
                   )

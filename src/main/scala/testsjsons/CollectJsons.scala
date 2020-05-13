@@ -38,11 +38,11 @@ object CollectJsons {
       |                                {
       |                                 "name" : "proc_v1",
       |                                 "qt" : "proc_cursor",
-      |                                 "query" : "wsora.pkg_test.proc_v1(rc)",
+      |                                 "query" : "wsora.pkg_test.proc_v1(?)",
       |                                 "reftables" : ["wsora.dat"]
       |                                },
       |                                {
-      |                                 "name" : "proc_v1",
+      |                                 "name" : "proc_v11",
       |                                 "qt" : "proc_cursor",
       |                                 "query" : "wsora.pkg_test.proc_v1(refcur => ?)",
       |                                 "reftables" : ["wsora.dat"]

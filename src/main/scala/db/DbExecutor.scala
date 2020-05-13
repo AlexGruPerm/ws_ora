@@ -217,7 +217,9 @@ object DbExecutor {
             _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")
           } yield db).catchSome{
             case err: java.sql.SQLException =>
-              ZIO.fail(DbErrorException(err.getMessage+" query=xyz", err.getCause, trqDict.query))
+              ZIO.fail(DbErrorException(err.getMessage, err.getCause, trqDict.name))
+              // todo #2: here we can extend DbErrorException with ORA- error code, stack trace an etc.
+              //ZIO.fail(DbErrorException(err.getMessage, err.getCause, trqDict.name+" - ErrrorCode : "+err.getErrorCode+" - "+err.getSQLState))
           }
         }
       } yield dictRows
