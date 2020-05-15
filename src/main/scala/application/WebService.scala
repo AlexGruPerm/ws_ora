@@ -14,6 +14,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.language.postfixOps
 import CacheHelper._
 import UcpHelper._
+import StatHelper._
 import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
 import zio.config.Config
 
@@ -42,7 +43,8 @@ object WebService {
               //todo: temporary commented.
               //cacheValidator.repeat(Schedule.spaced(3.second)).forkDaemon *>
               cacheChecker.repeat(Schedule.spaced(2.second)).forkDaemon *>
-              ucpMonitor.repeat(Schedule.spaced(10.second)).forkDaemon
+                ucpMonitor.repeat(Schedule.spaced(10.second)).forkDaemon *>
+                statMonitor.repeat(Schedule.spaced(5.second)).forkDaemon
               //readUserInterrupt(fiber, actorSystem).repeat(Schedule.spaced(1.second)).forkDaemon
 
           _ <- cacheCheckerValidator.join //todo: may be divide on 2 separate forkDeamon

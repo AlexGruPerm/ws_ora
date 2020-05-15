@@ -6,6 +6,7 @@ import zio.logging.log
 import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, clock}
 import java.util.concurrent.TimeUnit
 
+import stat.WsStat
 import zio.clock.currentTime
 
 object CacheObject {
@@ -20,9 +21,10 @@ object CacheObject {
       def get(key: Int): UIO[Option[CacheEntity]]
       def set(key: Int, value: CacheEntity): UIO[Unit]
       def remove(keys: Seq[Int]): UIO[Unit]
+      def getWsStartTs: UIO[Long]
     }
 
-    final class refCache(ref: Ref[Cache]) extends CacheManager.Service {
+    final class refCache(ref: Ref[Cache], stat: Ref[WsStat]) extends CacheManager.Service {
       override def addHeartbeat: UIO[Unit] =
         ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 1))
 
@@ -38,13 +40,17 @@ object CacheObject {
       } yield r
 
       override def set(key: Int, value: CacheEntity): UIO[Unit] = {
-       //println(s"METHOD SET - CURR HBC = ${ref.get.map(_.HeartbeatCounter)}")
        ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 1, dictsMap = cv.dictsMap + (key -> value)))
     }
 
       override def remove(keys: Seq[Int]): UIO[Unit] =
         ref.update(cvu => cvu.copy(HeartbeatCounter = cvu.HeartbeatCounter + 1,
           dictsMap = cvu.dictsMap -- keys))
+
+      override def getWsStartTs: UIO[Long] = for {
+        startTs <- stat.get.map(_.wsStartTs)
+      } yield startTs
+
     }
 
     def refCache(implicit tag: Tagged[CacheManager.Service]
@@ -53,11 +59,15 @@ object CacheObject {
         Nothing,
         CacheManager.Service
       ] {
-        Ref.make(
-          Cache(0, System.currentTimeMillis,
-            Map(1 -> CacheEntity(System.currentTimeMillis, System.currentTimeMillis, DictDataRows("empty", 0L, 0L, 0L, List(List())), Seq()))
-          )
-        ).map(refEmpty => new refCache(refEmpty))
+        Ref.make(WsStat(System.currentTimeMillis)).flatMap(sts =>
+          Ref.make(
+            Cache(0, System.currentTimeMillis,
+              Map(1 -> CacheEntity(
+                System.currentTimeMillis, System.currentTimeMillis,
+                DictDataRows("empty", 0L, 0L, 0L, List(List())), Seq()))
+            )
+          ).map(refEmpty => new refCache(refEmpty, sts))
+        )
       }
     }
 
