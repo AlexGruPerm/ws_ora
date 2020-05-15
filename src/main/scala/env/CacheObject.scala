@@ -6,7 +6,7 @@ import zio.logging.log
 import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, clock}
 import java.util.concurrent.TimeUnit
 
-import stat.WsStat
+import stat.StatObject.{CacheGetElm, FixedList, WsStat}
 import zio.clock.currentTime
 
 object CacheObject {
@@ -22,6 +22,8 @@ object CacheObject {
       def set(key: Int, value: CacheEntity): UIO[Unit]
       def remove(keys: Seq[Int]): UIO[Unit]
       def getWsStartTs: UIO[Long]
+      def getGetCount: UIO[FixedList[CacheGetElm]]
+      def clearGetCounter :UIO[Unit]
     }
 
     final class refCache(ref: Ref[Cache], stat: Ref[WsStat]) extends CacheManager.Service {
@@ -36,8 +38,21 @@ object CacheObject {
             SomeCe => this.set(key, SomeCe.copy(tslru = System.currentTimeMillis))
           )
         )
+        _ <- stat.update(
+          wss => WsStat(wss.wsStartTs,wss.currGetCnt+1, wss.statGets)
+        )
         r <- ref.get.map(_.dictsMap.get(key))
       } yield r
+
+      override def clearGetCounter :UIO[Unit] = {
+        stat.update(
+          wss => {
+            val newElem: FixedList[CacheGetElm] = wss.statGets
+            wss.statGets.append(CacheGetElm(System.currentTimeMillis, wss.currGetCnt))
+            WsStat(wss.wsStartTs, 0, newElem)
+          }
+        )
+      }
 
       override def set(key: Int, value: CacheEntity): UIO[Unit] = {
        ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 1, dictsMap = cv.dictsMap + (key -> value)))
@@ -51,6 +66,8 @@ object CacheObject {
         startTs <- stat.get.map(_.wsStartTs)
       } yield startTs
 
+      override def getGetCount: UIO[FixedList[CacheGetElm]] = stat.get.map(_.statGets)
+
     }
 
     def refCache(implicit tag: Tagged[CacheManager.Service]
@@ -59,7 +76,7 @@ object CacheObject {
         Nothing,
         CacheManager.Service
       ] {
-        Ref.make(WsStat(System.currentTimeMillis)).flatMap(sts =>
+        Ref.make(WsStat(System.currentTimeMillis, 0, new FixedList[CacheGetElm](3))).flatMap(sts =>
           Ref.make(
             Cache(0, System.currentTimeMillis,
               Map(1 -> CacheEntity(
