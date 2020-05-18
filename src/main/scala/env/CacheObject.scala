@@ -76,7 +76,7 @@ object CacheObject {
         Nothing,
         CacheManager.Service
       ] {
-        Ref.make(WsStat(System.currentTimeMillis, 0, new FixedList[CacheGetElm](3))).flatMap(sts =>
+        Ref.make(WsStat(System.currentTimeMillis, 0, new FixedList[CacheGetElm](10))).flatMap(sts =>
           Ref.make(
             Cache(0, System.currentTimeMillis,
               Map(1 -> CacheEntity(

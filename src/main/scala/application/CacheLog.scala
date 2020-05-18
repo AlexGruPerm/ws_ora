@@ -18,6 +18,8 @@ object CacheLog {
       _ <- log.trace(s"[$effName] HeartbeatCounter = ${cv.HeartbeatCounter} " +
         s"bornTs = ${cv.cacheCreatedTs} dictsMap.size = ${cv.dictsMap.size}")
       */
+      /*
+      todo: open it somewhere for debug purpose
       _ <- ZIO.foreach(cv.dictsMap)(ce =>
         if (ce._1 != 1) {
           log.trace(s"    [Cache element] key ${ce._1}") *>
@@ -28,6 +30,7 @@ object CacheLog {
           UIO.succeed(())
         }
       )
+      */
       _ <- if (incrHeadrbeat) {
         cache.addHeartbeat
       } else {
