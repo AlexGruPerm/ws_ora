@@ -3,11 +3,13 @@ package env
 import data.{Cache, CacheEntity, DictDataRows}
 import zio.logging.Logging.Logging
 import zio.logging.log
-import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, clock}
+import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, ZManaged, clock, config}
 import java.util.concurrent.TimeUnit
 
 import stat.StatObject.{CacheGetElm, FixedList, WsStat}
+import wsconfiguration.ConfClasses.WsConfig
 import zio.clock.currentTime
+import zio.config.Config
 
 object CacheObject {
 
@@ -71,21 +73,23 @@ object CacheObject {
     }
 
     def refCache(implicit tag: Tagged[CacheManager.Service]
-                           ): ZLayer[clock.Clock, Nothing, CacheManager] = {
+                           ): ZLayer[config.Config[WsConfig]/*clock.Clock*/, Nothing, CacheManager] = {
         ZLayer.fromEffect[
-          Any,
+          config.Config[WsConfig],//Any,
         Nothing,
         CacheManager.Service
       ] {
-        Ref.make(WsStat(System.currentTimeMillis, 0, new FixedList[CacheGetElm](10))).flatMap(sts =>
-          Ref.make(
-            Cache(0, System.currentTimeMillis,
-              Map(1 -> CacheEntity(
-                System.currentTimeMillis, System.currentTimeMillis,
-                DictDataRows("empty", 0L, 0L, 0L, List(List())), Seq()))
+          ZManaged.access[Config[WsConfig]](_.get).use(wscfg =>
+            Ref.make(WsStat(System.currentTimeMillis, 0, new FixedList[CacheGetElm](wscfg.api.getcnthistory))).flatMap(sts =>
+              Ref.make(
+                Cache(0, System.currentTimeMillis,
+                  Map(1 -> CacheEntity(
+                    System.currentTimeMillis, System.currentTimeMillis,
+                    DictDataRows("empty", 0L, 0L, 0L, List(List())), Seq()))
+                )
+              ).map(refEmpty => new refCache(refEmpty, sts))
             )
-          ).map(refEmpty => new refCache(refEmpty, sts))
-        )
+          )
       }
     }
 

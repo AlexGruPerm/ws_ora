@@ -106,17 +106,6 @@ object Ucp {
           } yield zm
         zm.toLayer // Convert a `Managed` to `ZLayer` directly
       }
-
-      /*
-original
-  val mr: ZManaged[Any, Nothing, UcpZLayer.Service] =
-    ZManaged.make(
-      Ref.make(
-        ZIO.access[Config[WsConfig]](_.get).map(cfg => new OraConnectionPool(cfg.dbconf, cfg.ucpconf))
-      ).map(cp => new poolCache(Task(cp)))
-    )(_.closeAll)
-*/
-
   }
 
 }
