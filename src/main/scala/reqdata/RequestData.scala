@@ -40,10 +40,10 @@ object CustDecoders {
       cont_encoding_gzip_enabled <- h.get[Int]("cont_encoding_gzip_enabled")
       thread_pool<- h.get[String]("thread_pool")
       request_timeout_ms <- h.get[Double]("request_timeout_ms")
-      cache_live_time <- h.get[Option[Long]]("cache_live_time")
+      nocache <- h.get[Option[Int]]("nocache")
       context <- h.get[Option[String]]("context")
       queries <- h.get[Seq[Query]]("queries")
-    } yield RequestData(RequestHeader(user_session,cont_encoding_gzip_enabled,thread_pool,request_timeout_ms,cache_live_time,context),queries)
+    } yield RequestData(RequestHeader(user_session,cont_encoding_gzip_enabled,thread_pool,request_timeout_ms,nocache,context),queries)
   }
 
 }
@@ -62,7 +62,7 @@ case class RequestHeader(
                           cont_encoding_gzip_enabled: Int, //use gzip or not for response json (Content-Encoding)
                           thread_pool: String, //block or sync
                           request_timeout_ms: Double, //client can set request timeout, after t.o. return json response with error
-                          cache_live_time: Option[Long],//0 - no cache, otherwise set live time for each dict in cache. todo: In the future set it individual.
+                          nocache : Option[Int],
                           context: Option[String]
                         )
 

@@ -71,8 +71,9 @@ object CacheObject {
     }
 
     def refCache(implicit tag: Tagged[CacheManager.Service]
-                      ): ZLayer[clock.Clock, Nothing, CacheManager] = {
-      ZLayer.fromEffect[Any,
+                           ): ZLayer[clock.Clock, Nothing, CacheManager] = {
+        ZLayer.fromEffect[
+          Any,
         Nothing,
         CacheManager.Service
       ] {

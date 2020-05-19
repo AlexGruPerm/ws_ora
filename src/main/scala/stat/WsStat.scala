@@ -6,18 +6,18 @@ object StatObject {
 
   case class CacheGetElm(ts: Long, cnt: Int)
 
-  class FixedList[CacheGetElm](max: Int) extends Traversable[CacheGetElm] {
+  class FixedList[A](max: Int) extends Traversable[A] {
 
-    val list: ListBuffer[CacheGetElm] = ListBuffer()
+    val list: ListBuffer[A] = ListBuffer()
 
-    def append(elem: CacheGetElm) {
+    def append(elem: A) {
       if (list.size == max) {
         list.trimStart(1)
       }
       list.append(elem)
     }
 
-    def foreach[U](f: CacheGetElm => U) = list.foreach(f)
+    def foreach[U](f: A => U) = list.foreach(f)
 
   }
 

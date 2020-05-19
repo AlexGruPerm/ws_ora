@@ -1,3 +1,5 @@
+0) dict can be related with trunc(sysdate) - add it in request. And cache life time is related too.
+
 0) check throw new OutOfMemoryError()
 
 0) Create new db schema for all possible cases of calls.

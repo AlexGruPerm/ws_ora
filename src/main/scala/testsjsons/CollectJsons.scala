@@ -8,7 +8,7 @@ object CollectJsons {
       |                  "cont_encoding_gzip_enabled" : 1,
       |                  "thread_pool" : "block",
       |                  "request_timeout_ms": 5000,
-      |                  "cache_live_time" : 60000,
+      |                  "nocache" : 1,
       |                  "context" : "begin
       |                                    wsora.pkg_test.set_global_context(
       |                                           param1 =>  37317,
