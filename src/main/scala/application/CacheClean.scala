@@ -19,6 +19,11 @@ object CacheClean {
     _ <- ZIO.foreach(entityForClean)(
       te => log.info(s" ####### need to clean key : ${te._1} #######")
     )
+    _ <- cache.saveCleanElemsCnt(entityForClean.size)
+    //todo: add here saving cnt elemtns in Cache, like in CacheCleanElm. look as StatObject and add new c.c.
+    /* SIZE from here:
+          cv <- cache.getCacheValue cv.dictsMap.size
+    */
     _ <- cache.remove(entityForClean.map(tup => tup._1))
   } yield ()
 }

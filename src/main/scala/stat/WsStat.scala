@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 object StatObject {
 
   case class CacheGetElm(ts: Long, cnt: Int)
+  case class CacheCleanElm(ts: Long, cnt: Int)
 
   class FixedList[A](max: Int) extends Traversable[A] {
 
@@ -21,6 +22,9 @@ object StatObject {
 
   }
 
-  case class WsStat(wsStartTs: Long, currGetCnt:Int = 0, statGets: FixedList[CacheGetElm])
+  case class WsStat(wsStartTs: Long,
+                    currGetCnt:Int = 0,
+                    statGets: FixedList[CacheGetElm],
+                    statsCleanElems: FixedList[CacheCleanElm])
 
 }
