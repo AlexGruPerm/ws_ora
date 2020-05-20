@@ -192,7 +192,7 @@ object DbExecutor {
         hashKey: Int = reqHeader.hashCode() + reqQuery.hashCode() //reqQuery.hashCode()  // todo: add user_session
         dictRows <- dsCursor
 
-        //We cache results only if
+        //We cache results only if nocache key is empty or = 0
         _ <- cache.set(hashKey,
           CacheEntity(System.currentTimeMillis, System.currentTimeMillis,
             dictRows, reqQuery.reftables.getOrElse(Seq())))
