@@ -1,3 +1,18 @@
+0)
+Need add new c.c. for statistics like CacheGetElm,
+CacheCleanElm - add here field size of cache for ts.
+For ucpMonitor :
+NEW C.C.
+AvailableConnCnt
+BorrowedConnCnt
+add this c.c. as fields in WsStat for WebUI.
+
+0) NEXT BIG STEP, make WebUI with graphics from WsStat
+
+0) Search path to store debug.html and wsui.html as resources, not like external files.
+
+0) refactoring code with .when
+
 0) dict can be related with trunc(sysdate) - add it in request. And cache life time is related too.
 
 0) check throw new OutOfMemoryError()
