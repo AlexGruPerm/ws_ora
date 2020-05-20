@@ -6,6 +6,7 @@ import zio.logging.log
 import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, ZManaged, clock, config}
 import java.util.concurrent.TimeUnit
 
+import env.EnvContainer.ConfigWsConf
 import stat.StatObject.{CacheGetElm, FixedList, WsStat}
 import wsconfiguration.ConfClasses.WsConfig
 import zio.clock.currentTime
@@ -73,14 +74,15 @@ object CacheObject {
     }
 
     def refCache(implicit tag: Tagged[CacheManager.Service]
-                           ): ZLayer[config.Config[WsConfig]/*clock.Clock*/, Nothing, CacheManager] = {
+                           ): ZLayer[ConfigWsConf, Nothing, CacheManager] = {
         ZLayer.fromEffect[
-          config.Config[WsConfig],//Any,
+          ConfigWsConf,//Any,
         Nothing,
         CacheManager.Service
       ] {
           ZManaged.access[Config[WsConfig]](_.get).use(wscfg =>
-            Ref.make(WsStat(System.currentTimeMillis, 0, new FixedList[CacheGetElm](wscfg.api.getcnthistory))).flatMap(sts =>
+            Ref.make(WsStat(System.currentTimeMillis, 0, new FixedList[CacheGetElm](
+              wscfg.smconf.getcntHistoryDeep))).flatMap(sts =>
               Ref.make(
                 Cache(0, System.currentTimeMillis,
                   Map(1 -> CacheEntity(

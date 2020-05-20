@@ -7,8 +7,7 @@ object ConfClasses {
 
   final case class ApiConfig(
                               endpoint: String,
-                              port: Int,
-                              getcnthistory: Int
+                              port: Int
                             )
 
   final case class DbConfig(
@@ -27,10 +26,16 @@ object ConfClasses {
                               ConnectionWaitTimeout: Int
                             )
 
+  final case class StatMonConfig(
+                                  getcntHistoryDeep: Int,
+                                  ltUnusedCache :Int
+                                )
+
   final case class WsConfig(
                              api: ApiConfig,
                              dbconf: DbConfig,
-                             ucpconf: UcpConfig
+                             ucpconf: UcpConfig,
+                             smconf: StatMonConfig
                            )
 
 }

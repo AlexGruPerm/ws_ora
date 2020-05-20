@@ -1,5 +1,7 @@
 package env
 
+import env.EnvContainer.ConfigWsConf
+
 import scala.language.higherKinds
 import wsconfiguration.ConfClasses.WsConfig
 import zio._
@@ -10,7 +12,7 @@ object ConfigLayerObject {
 
   val wsConfigAutomatic = descriptor[WsConfig]
 
-  def configLayer(confFileName: String): Layer[Throwable, config.Config[WsConfig]] =
+  def configLayer(confFileName: String): Layer[Throwable, ConfigWsConf] =
     TypesafeConfig.fromHoconFile(new java.io.File(confFileName), wsConfigAutomatic)
 
 }

@@ -1,4 +1,6 @@
 import java.io.File
+
+import env.EnvContainer.ConfigWsConf
 import zio._
 import zio.console._
 import zio.config.magnolia.DeriveConfigDescriptor._
@@ -30,7 +32,7 @@ final case class WsConfig(api: ApiConfig, dbconf: DbConfig, ucpconf: UcpConfig)
 
 val wsConfigAutomatic = descriptor[WsConfig]
 
-def configLayer(confFileName: String): Layer[Throwable, config.Config[WsConfig]] =
+def configLayer(confFileName: String): Layer[Throwable, ConfigWsConf] =
   TypesafeConfig.fromHoconFile(new java.io.File(confFileName), wsConfigAutomatic)
 
 val finalExecution: ZIO[Console with Config[WsConfig], Nothing, Unit] =

@@ -192,22 +192,12 @@ object DbExecutor {
         hashKey: Int = reqHeader.hashCode() + reqQuery.hashCode() //reqQuery.hashCode()  // todo: add user_session
         dictRows <- dsCursor
 
-        //We not cache this results if nocache
+        //We cache results only if
+        _ <- cache.set(hashKey,
+          CacheEntity(System.currentTimeMillis, System.currentTimeMillis,
+            dictRows, reqQuery.reftables.getOrElse(Seq())))
+          .when(reqHeader.nocache.forall(_ == 0))
 
-        _ <- reqHeader.nocache match {
-          case Some(nocache) if nocache==1 => ZIO.unit
-          case None => cache.set(hashKey,
-            CacheEntity(System.currentTimeMillis, System.currentTimeMillis,
-              dictRows, reqQuery.reftables.getOrElse(Seq())))
-        }
-
-        /*
-        _ <- reqHeader.nocache.fold(
-          cache.set(hashKey, CacheEntity(System.currentTimeMillis, System.currentTimeMillis, dictRows, reqQuery.reftables.getOrElse(Seq())))
-        )(_ => ZIO.unit)
-        */
-
-        //ds <- dsCursor
         // We absolutely need close it to return to the pool
         _ = thisConnection.close()
         // If this connection was obtained from a pooled data source, then it won't actually be closed,
