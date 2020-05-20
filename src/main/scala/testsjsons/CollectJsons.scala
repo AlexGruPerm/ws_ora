@@ -8,7 +8,7 @@ object CollectJsons {
       |                  "cont_encoding_gzip_enabled" : 1,
       |                  "thread_pool" : "block",
       |                  "request_timeout_ms": 5000,
-      |                  "nocache" : 1,
+      |                  "nocache" : 0,
       |                  "context" : "begin
       |                                    wsora.pkg_test.set_global_context(
       |                                           param1 =>  37317,
@@ -19,6 +19,7 @@ object CollectJsons {
       |                  "queries": [
       |                                {
       |                                 "name" : "func_get_cursor_v1",
+      |                                 "nocache" : 1,
       |                                 "qt" : "func_cursor",
       |                                 "query" : "wsora.pkg_test.func_get_cursor_v1",
       |                                 "reftables" : ["wsora.dat"]

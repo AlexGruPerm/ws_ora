@@ -41,8 +41,10 @@ object WebService {
 
           cacheCheckerValidator <-
               //todo: temporary commented.
+              //validate cache by ref-tables.
               //cacheValidator.repeat(Schedule.spaced(3.second)).forkDaemon *>
-              cacheChecker.repeat(Schedule.spaced(2.second)).forkDaemon *>
+              //clean cache
+              cacheChecker.repeat(Schedule.spaced(5.second)).forkDaemon *>
                 ucpMonitor.repeat(Schedule.spaced(10.second)).forkDaemon *>
                 statMonitor.repeat(Schedule.spaced(5.second)).forkDaemon
               //readUserInterrupt(fiber, actorSystem).repeat(Schedule.spaced(1.second)).forkDaemon

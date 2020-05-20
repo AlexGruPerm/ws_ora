@@ -20,11 +20,12 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 object CacheHelper {
 
   /**
-   *
+   * Using for cleaning cache by removing entities from.
    */
    val cacheChecker: ZIO[ZEnvLogCache, Nothing, Unit] =
     for {
       _ <- CacheLog.out("cacheChecker",true)
+      _ <- CacheClean.checkAndClean
     } yield ()
 
   /**

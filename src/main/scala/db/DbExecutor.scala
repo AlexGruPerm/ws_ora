@@ -196,7 +196,8 @@ object DbExecutor {
         _ <- cache.set(hashKey,
           CacheEntity(System.currentTimeMillis, System.currentTimeMillis,
             dictRows, reqQuery.reftables.getOrElse(Seq())))
-          .when(reqHeader.nocache.forall(_ == 0))
+          .when(reqHeader.nocache.forall(_ == 0) &&
+            reqQuery.nocache.forall(_ == 0))
 
         // We absolutely need close it to return to the pool
         _ = thisConnection.close()

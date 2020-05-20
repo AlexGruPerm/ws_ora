@@ -128,12 +128,12 @@ object ReqResp {
           }}
         */
 
-        checkResult <- if (1==0) {
-          Task.fail(
-            NoConfigureDbInRequest("Text of error message")
-          )
-        } else {Task.succeed(())
+        checkResult <- if (1 == 0) {
+          Task.fail(NoConfigureDbInRequest("Text of error message"))
+        } else {
+          Task.succeed(())
         }
+
 
       } yield checkResult
 

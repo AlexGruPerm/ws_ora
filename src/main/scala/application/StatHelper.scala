@@ -15,7 +15,7 @@ object StatHelper {
       startTs <- cache.getWsStartTs
       gc <- cache.getGetCount
       _ <- log.info(s"~~~~~~~~~~ WS CURRENT STATISTIC ~~~~~~~~~~~~~~~~~")
-      _ <- log.info(s"uptime : ${(System.currentTimeMillis - startTs)/1000} sec. Get(count)=$gc")
+      _ <- log.info(s"uptime : ${(System.currentTimeMillis - startTs)/1000} sec. Get(count)=${gc.size}")
       _ <- cache.clearGetCounter
       _ <- ZIO.foreach(gc.toList)(elm => log.info(s" ELM : ${elm.ts} - ${elm.cnt}"))
       _ <- ZIO.succeed(gc.foreach(elm => log.info(s"    ELM : ${elm.ts} - ${elm.cnt}")))

@@ -21,6 +21,7 @@ object CustDecoders {
   implicit val decoderDict: Decoder[Query] = Decoder.instance { h =>
     for {
       name <- h.get[String]("name")
+      nc <- h.get[Option[Int]]("nocache")
       qt <- h.get[Option[String]]("qt")
       query <- h.get[String]("query")
       rt <- h.get[Option[Seq[String]]]("reftables")
@@ -31,7 +32,7 @@ object CustDecoders {
         case "select" => select
         case _ => unknown
       }
-    } yield Query(name,qtType,query,rt)
+    } yield Query(name,nc,qtType,query,rt)
   }
 
   implicit val decoderRequestData: Decoder[RequestData] = Decoder.instance { h =>
@@ -52,6 +53,7 @@ object CustDecoders {
 */
 case class Query(
                  name: String,
+                 nocache : Option[Int],
                  qt : queryType,
                  query :String,
                  reftables: Option[Seq[String]]
