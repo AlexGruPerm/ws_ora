@@ -14,10 +14,11 @@ object StatHelper {
       gc <- cache.getGetCount
       cc <- cache.getCleanCount
       _ <- log.trace(s"~~~~~~~~~~ WS CURRENT STATISTIC ~~~~~~~~~~~~~~~~~")
-      _ <- log.trace(s"uptime : ${(System.currentTimeMillis - startTs)/1000} sec. Get(count)=${gc.size}")
+      _ <- log.trace(s"uptime : ${(System.currentTimeMillis - startTs)/1000} sec. Get(count) = ${gc.size}")
       _ <- cache.clearGetCounter
-      _ <- ZIO.foreach(gc.toList)(elm => log.trace(s" GET STAT: ${elm.ts} - ${elm.cnt}"))
-      _ <- ZIO.foreach(cc.toList)(elm => log.trace(s" CLEAN STAT : ${elm.ts} - ${elm.cnt}"))
+      _ <- ZIO.foreach(gc.toList)(elm => log.trace(s" CacheGets : ${elm.ts} - ${elm.cnt}"))
+      _ <- ZIO.foreach(cc.toList)(
+        elm => log.trace(s" CacheCleaning : ${elm.ts} - Cleared: ${elm.cntCleared} Existing: ${elm.cntExisting}"))
       _ <- log.info(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     } yield ()
 

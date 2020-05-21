@@ -60,15 +60,16 @@ object CacheObject {
         )
       }
 
-      override def saveCleanElemsCnt(size: Int) :UIO[Unit] = {
-        stat.update(
+      override def saveCleanElemsCnt(size: Int) :UIO[Unit] = for {
+        currCacheElmCnt <- ref.get.map(rc => rc.dictsMap.size)
+        _ <- stat.update(
           wss => {
             val newCleanElm : FixedList[CacheCleanElm] = wss.statsCleanElems
-            wss.statsCleanElems.append(CacheCleanElm(System.currentTimeMillis, size))
+            wss.statsCleanElems.append(CacheCleanElm(System.currentTimeMillis, size, currCacheElmCnt-size))
             WsStat(wss.wsStartTs, wss.currGetCnt, wss.statGets, newCleanElm)
           }
         )
-      }
+      } yield ()
 
       override def set(key: Int, value: CacheEntity): UIO[Unit] = {
        ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 1, dictsMap = cv.dictsMap + (key -> value)))
