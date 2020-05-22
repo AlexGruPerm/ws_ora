@@ -5,7 +5,7 @@ import java.sql.Connection
 import Ucp.UcpZLayer
 import db.Ucp.UcpZLayer.poolCache
 import zio.config.Config
-import env.EnvContainer.ZenvLogConfCache_
+import env.EnvContainer.{ConfigWsConf, ZenvLogConfCache_}
 import wsconfiguration.ConfClasses.WsConfig
 import zio.logging.Logging.Logging
 import zio.logging.{Logger, Logging, log}
@@ -58,28 +58,6 @@ object Ucp {
       override def closeAll: UIO[Unit] =
         ref.get.map(_.closePoolConnections)
 
-/*      override def testQuery(i: Int): UIO[Unit] = {
-        ref.get.map(cp => cp.pds.getConnection()).map { con =>
-          val stmt = con.createStatement()
-          con.setClientInfo("OCSID.ACTION", i.toString)
-          val rs = stmt.executeQuery(
-            "select sum(t.OBJECT_ID)as cnt from all_objects t where rownum<=round(dbms_random.value(1,100))"
-            //"select id,s_name,view_src_data_name from d_data_source where id<=10"
-          )
-          con.close() //!!!
-          val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-            .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
-          //columns.foreach(c => println(s"${c._1} - ${c._2}" ))
-          val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
-            columns.map(
-              cname => (cname._1, rs.getString(cname._1))
-            )
-          }.toList
-          rows.foreach(r => println("[" + i + "]    " + r))
-        }
-      }*/
-
-
     }
 
     /**
@@ -93,8 +71,8 @@ object Ucp {
      * No, I don't think you want to have a ZIO inside a Ref.
      * if you have your value inside an effect you can just do effect.map(ref.set)
      */
-      def poolCache(implicit tag: Tagged[UcpZLayer.Service]): ZLayer[ZenvLogConfCache_, Throwable, Has[UcpZLayer.Service]] = {
-        val zm: ZManaged[Config[WsConfig], Throwable, poolCache] =
+      def poolCache(implicit tag: Tagged[UcpZLayer.Service]): ZLayer[ZenvLogConfCache_, Throwable, UcpZLayer] = {
+        val zm: ZManaged[ConfigWsConf, Throwable, poolCache] =
           for {
             // Use a Managed directly when access then environment
             conf <- ZManaged.access[Config[WsConfig]](_.get)

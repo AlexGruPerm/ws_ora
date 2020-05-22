@@ -14,7 +14,7 @@ object CacheClean {
     cvals <- cache.getCacheValue
     currTs = System.currentTimeMillis
     entityForClean <- ZIO.filter(cvals.dictsMap)(ce =>
-      UIO(ce._1!=1&& (currTs - ce._2.tslru) > conf.smconf.ltUnusedCache*1000L)
+      UIO(ce._1!=1 && (currTs - ce._2.tslru) > conf.smconf.ltUnusedCache*1000L)
     )
     _ <- ZIO.foreach(entityForClean)(
       te => log.info(s" ####### need to clean key : ${te._1} #######")

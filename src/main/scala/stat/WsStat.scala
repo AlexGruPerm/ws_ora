@@ -6,6 +6,7 @@ object StatObject {
 
   case class CacheGetElm(ts: Long, cnt: Int)
   case class CacheCleanElm(ts: Long, cntCleared: Int, cntExisting: Int)
+  case class ConnStat(ts: Long, AvailableConnCnt: Int, BorrowedConnCnt: Int)
 
   class FixedList[A](max: Int) extends Traversable[A] {
 
@@ -22,9 +23,12 @@ object StatObject {
 
   }
 
-  case class WsStat(wsStartTs: Long,
-                    currGetCnt:Int = 0,
-                    statGets: FixedList[CacheGetElm],
-                    statsCleanElems: FixedList[CacheCleanElm])
+  case class WsStat(
+                     wsStartTs: Long,
+                     currGetCnt: Int = 0,
+                     statGets: FixedList[CacheGetElm],
+                     statsCleanElems: FixedList[CacheCleanElm],
+                     statsConn: FixedList[ConnStat]
+                   )
 
 }

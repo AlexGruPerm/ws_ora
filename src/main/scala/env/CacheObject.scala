@@ -7,7 +7,7 @@ import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, ZManaged, clock, config}
 import java.util.concurrent.TimeUnit
 
 import env.EnvContainer.ConfigWsConf
-import stat.StatObject.{CacheCleanElm, CacheGetElm, FixedList, WsStat}
+import stat.StatObject.{CacheCleanElm, CacheGetElm, ConnStat, FixedList, WsStat}
 import wsconfiguration.ConfClasses.WsConfig
 import zio.clock.currentTime
 import zio.config.Config
@@ -27,8 +27,10 @@ object CacheObject {
       def getWsStartTs: UIO[Long]
       def getGetCount: UIO[FixedList[CacheGetElm]]
       def getCleanCount: UIO[FixedList[CacheCleanElm]]
+      def getConnStat: UIO[FixedList[ConnStat]]
       def clearGetCounter :UIO[Unit]
       def saveCleanElemsCnt(size: Int) :UIO[Unit]
+      def saveConnStats(sizeAvail: Int, sizeBorrow: Int) :UIO[Unit]
     }
 
     final class refCache(ref: Ref[Cache], stat: Ref[WsStat]) extends CacheManager.Service {
@@ -44,7 +46,7 @@ object CacheObject {
           )
         )
         _ <- stat.update(
-          wss => WsStat(wss.wsStartTs,wss.currGetCnt+1, wss.statGets, wss.statsCleanElems)
+          wss => WsStat(wss.wsStartTs,wss.currGetCnt+1, wss.statGets, wss.statsCleanElems, wss.statsConn)
         )
         r <- ref.get.map(_.dictsMap.get(key))
       } yield r
@@ -53,9 +55,9 @@ object CacheObject {
         stat.update(
           wss => {
             val newElem: FixedList[CacheGetElm] = wss.statGets
-            val newCleanLm : FixedList[CacheCleanElm] = wss.statsCleanElems
+            //val newCleanLm : FixedList[CacheCleanElm] = wss.statsCleanElems
             wss.statGets.append(CacheGetElm(System.currentTimeMillis, wss.currGetCnt))
-            WsStat(wss.wsStartTs, 0, newElem, newCleanLm)
+            WsStat(wss.wsStartTs, 0, newElem, wss.statsCleanElems, wss.statsConn)
           }
         )
       }
@@ -66,7 +68,17 @@ object CacheObject {
           wss => {
             val newCleanElm : FixedList[CacheCleanElm] = wss.statsCleanElems
             wss.statsCleanElems.append(CacheCleanElm(System.currentTimeMillis, size, currCacheElmCnt-size))
-            WsStat(wss.wsStartTs, wss.currGetCnt, wss.statGets, newCleanElm)
+            WsStat(wss.wsStartTs, wss.currGetCnt, wss.statGets, newCleanElm, wss.statsConn)
+          }
+        )
+      } yield ()
+
+      override def saveConnStats(sizeAvail: Int, sizeBorrow: Int) :UIO[Unit] = for {
+        _ <- stat.update(
+          wss => {
+            val newStatElm : FixedList[ConnStat] = wss.statsConn
+            wss.statsConn.append(ConnStat(System.currentTimeMillis, sizeAvail, sizeBorrow))
+            WsStat(wss.wsStartTs, wss.currGetCnt, wss.statGets, wss.statsCleanElems , newStatElm)
           }
         )
       } yield ()
@@ -87,6 +99,8 @@ object CacheObject {
 
       override def getCleanCount: UIO[FixedList[CacheCleanElm]] = stat.get.map(_.statsCleanElems)
 
+      override def getConnStat: UIO[FixedList[ConnStat]] = stat.get.map(_.statsConn)
+
     }
 
     def refCache(implicit tag: Tagged[CacheManager.Service]
@@ -99,10 +113,11 @@ object CacheObject {
         ZManaged.access[ConfigWsConf](_.get.smconf).use(cfg =>
           Ref.make(WsStat(System.currentTimeMillis, 0,
             new FixedList[CacheGetElm](cfg.getcntHistoryDeep),
-            new FixedList[CacheCleanElm](cfg.getcntHistoryDeep)
-          )).flatMap(sts =>
+            new FixedList[CacheCleanElm](cfg.getcntHistoryDeep),
+            new FixedList[ConnStat](cfg.getcntHistoryDeep)
+          )).flatMap(refInitStats =>
             Ref.make(Cache(0, System.currentTimeMillis, Map.empty)
-            ).map(refEmpty => new refCache(refEmpty, sts))
+            ).map(refInitEmptyCache => new refCache(refInitEmptyCache, refInitStats))
           )
         )
       }
