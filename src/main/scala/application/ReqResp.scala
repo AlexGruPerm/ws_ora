@@ -216,17 +216,14 @@ object ReqResp {
   private def closeFile(f: BufferedSource): UIO[Unit] =
     UIO.unit
 
-
+  /**
+   * We can use effectBlocking, or
+   *  blocking(Task(...
+  */
   val routeGetDebug: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
-    strDebugForm <- Task(
+    strDebugForm <- effectBlocking(
       Source.fromResource("debug_post.html").getLines.mkString
         .replace("req_json_text", CollectJsons.reqJsonOra1))
-
-    /*
-    strDebugForm <- openFile("C:\\ws_ora\\src\\main\\resources\\debug_post.html").bracket(closeFile) {
-      file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonOra1))
-    }
-    */
 
     _ <- logRequest(request)
     f <- ZIO.fromFuture { implicit ec =>
