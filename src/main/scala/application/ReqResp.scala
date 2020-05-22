@@ -216,14 +216,17 @@ object ReqResp {
   private def closeFile(f: BufferedSource): UIO[Unit] =
     UIO.unit
 
+
   val routeGetDebug: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
+    strDebugForm <- Task(
+      Source.fromResource("debug_post.html").getLines.mkString
+        .replace("req_json_text", CollectJsons.reqJsonOra1))
+
+    /*
     strDebugForm <- openFile("C:\\ws_ora\\src\\main\\resources\\debug_post.html").bracket(closeFile) {
       file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonOra1))
-    } orElse
-      openFile("C:\\ws_ora\\src\\main\\resources\\debug_post.html").bracket(closeFile) {
-        file =>Task(file.getLines.mkString.replace("req_json_text", CollectJsons.reqJsonOra1))
-      }
-    //strDebugForm = strDebugFormSource
+    }
+    */
 
     _ <- logRequest(request)
     f <- ZIO.fromFuture { implicit ec =>
