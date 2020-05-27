@@ -1,11 +1,11 @@
 package application
 
-import java.io.{File, IOException}
+import java.io.{BufferedInputStream, File, IOException}
 
 import akka.http.scaladsl.model.HttpCharsets._
 import akka.http.scaladsl.model.MediaTypes.{`application/json`, `text/html`}
 import akka.http.scaladsl.model.headers.`Content-Encoding`
-import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest}
 import akka.stream.scaladsl.FileIO
 import akka.util.ByteString
 import data.{DbErrorDesc, DbErrorException, DictsDataAccum, RequestResult}
@@ -254,22 +254,24 @@ object ReqResp {
     }
   } yield f
 
-
   val routeGetFavicon: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
     _ <- putStrLn(s"================= ${request.method} REQUEST ${request.protocol.value} =============")
     //todo #6: replace full path to using fromResource
     icoFile <- Task{new File("C:\\ws_fphp\\src\\main\\resources\\favicon.png")}
+    //icoFile <- effectBlocking(Source.fromFile("favicon.png"))
+    resourcesPath <- effectBlocking(getClass.getResource("favicon.png").getPath)
+
     f <- ZIO.fromFuture { implicit ec =>
       Future.successful(
         HttpResponse(StatusCodes.OK, entity =
           HttpEntity(MediaTypes.`application/octet-stream`, icoFile.length, FileIO.fromPath(icoFile.toPath))
         )
       ).flatMap{
-          result :HttpResponse => Future(result).map(_ => result)
-        }
+        result :HttpResponse => Future(result).map(_ => result)
+      }
     }
-  } yield f
 
+  } yield f
 
   val route404: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
     _ <- logRequest(request)
