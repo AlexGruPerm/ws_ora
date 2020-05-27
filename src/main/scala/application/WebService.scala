@@ -87,6 +87,7 @@ object WebService {
       case request@HttpRequest(HttpMethods.GET, _, _, _, _) =>
         request match {
           case request@HttpRequest(_, Uri.Path("/debug"), _, _, _) => routeGetDebug(request)
+          case request@HttpRequest(_, Uri.Path("/webui"), _, _, _) => routeWebUi(request)
           case request@HttpRequest(_, Uri.Path("/favicon.ico"), _, _, _) => routeGetFavicon(request)
         }
       case request: HttpRequest =>

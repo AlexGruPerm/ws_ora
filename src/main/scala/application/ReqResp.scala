@@ -11,7 +11,7 @@ import akka.util.ByteString
 import data.{DbErrorDesc, DbErrorException, DictsDataAccum, RequestResult}
 import db.DbExecutor
 import env.CacheObject.CacheManager
-import env.EnvContainer.{ZEnvConfLogCache, ZEnvLog, ZEnvLogCache}
+import env.EnvContainer.{ConfigWsConf, ZEnvConfLogCache, ZEnvLog, ZEnvLogCache}
 import io.circe.parser.parse
 import io.circe.Printer
 import zio.{IO, Task, UIO, URIO, ZIO}
@@ -220,11 +220,30 @@ object ReqResp {
    * We can use effectBlocking, or
    *  blocking(Task(...
   */
-  val routeGetDebug: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
+  val routeGetDebug: HttpRequest => ZIO[ZEnvLogCache, Throwable, HttpResponse] = request => for {
+    cfg <- ZIO.access[ConfigWsConf](_.get.api)
     strDebugForm <- effectBlocking(
       Source.fromResource("debug_post.html").getLines.mkString
-        .replace("req_json_text", CollectJsons.reqJsonOra1))
+        .replace("req_json_text", CollectJsons.reqJsonOra1)
+        .replace("ui_href",s"http://${cfg.endpoint}:${cfg.port}")
+    )
+    _ <- logRequest(request)
+    f <- ZIO.fromFuture { implicit ec =>
+      Future.successful(
+        HttpResponse(StatusCodes.OK, entity = HttpEntity(`text/html` withCharset `UTF-8`, strDebugForm)))
+        .flatMap {
+          result: HttpResponse => Future(result).map(_ => result)
+        }
+    }
+  } yield f
 
+
+  val routeWebUi: HttpRequest => ZIO[ZEnvLogCache, Throwable, HttpResponse] = request => for {
+    cfg <- ZIO.access[ConfigWsConf](_.get.api)
+    strDebugForm <- effectBlocking(
+      Source.fromResource("webui.html").getLines.mkString
+        .replace("debug_href",s"http://${cfg.endpoint}:${cfg.port}")
+    )
     _ <- logRequest(request)
     f <- ZIO.fromFuture { implicit ec =>
       Future.successful(
@@ -238,6 +257,7 @@ object ReqResp {
 
   val routeGetFavicon: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
     _ <- putStrLn(s"================= ${request.method} REQUEST ${request.protocol.value} =============")
+    //todo #6: replace full path to using fromResource
     icoFile <- Task{new File("C:\\ws_fphp\\src\\main\\resources\\favicon.png")}
     f <- ZIO.fromFuture { implicit ec =>
       Future.successful(
