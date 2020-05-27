@@ -4,7 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.12.8"
 
-lazy val Versions = new {
+/*
+lazy val Versions_OLD = new {
   val akka = "2.6.3"
   val akkaHttp  = "10.1.10"
   val circeVers = "0.12.3"
@@ -15,6 +16,23 @@ lazy val Versions = new {
   val zioConfTypeSafe =  "1.0.0-RC16"
   val zioLog = "0.2.5"
   val zioLogSlf4j = "0.2.5"
+  val dbcp2Vers = "2.7.0"
+  val jschVers = "0.1.55"
+}
+*/
+
+
+lazy val Versions = new {
+  val akka = "2.6.3"
+  val akkaHttp  = "10.1.10"
+  val circeVers = "0.12.3"
+  val logbackVers = "1.2.3"
+  val zioVers = "1.0.0-RC20"
+  val zioConf = "1.0.0-RC19"
+  val magnoliaVersion = "1.0.0-RC19"
+  val zioConfTypeSafe = "1.0.0-RC19"
+  val zioLog = "0.3.0"
+  val zioLogSlf4j = "0.3.0"
   val dbcp2Vers = "2.7.0"
   val jschVers = "0.1.55"
 }
@@ -39,10 +57,10 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % Versions.zioVers,
   "dev.zio" % "zio-config-magnolia_2.12" % Versions.magnoliaVersion,
   "dev.zio" % "zio-config-typesafe_2.12" % Versions.zioConfTypeSafe,
-  "dev.zio" %% "zio-config-refined" % Versions.zioConf,
+  //"dev.zio" %% "zio-config-refined" % Versions.zioConf,
   "dev.zio" %% "zio-config" % Versions.zioConf,
   "dev.zio" %% "zio-logging" % Versions.zioLog,
-  "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogSlf4j,
+  "dev.zio" % "zio-logging-slf4j_2.12" % Versions.zioLogSlf4j,
   "org.apache.commons" % "commons-dbcp2" % Versions.dbcp2Vers
 )
 

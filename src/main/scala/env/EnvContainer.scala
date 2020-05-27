@@ -7,7 +7,6 @@ import CacheObject._
 import akka.http.scaladsl.Http.{IncomingConnection, ServerBinding}
 import wsconfiguration.ConfClasses.WsConfig
 import zio.logging.Logging
-import zio.logging.Logging.Logging
 import ConfigLayerObject.configLayer
 import db.Ucp
 import Ucp.UcpZLayer

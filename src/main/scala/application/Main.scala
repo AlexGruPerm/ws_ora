@@ -1,27 +1,28 @@
 package application
 
-import zio.{App, Runtime, Task, UIO, ZEnv, ZIO}
+import zio.{App, ExitCode, Runtime, Task, UIO, ZEnv, ZIO}
 import env.EnvContainer._
 import zio.logging._
-import zio.console.{putStrLn}
+import zio.console.putStrLn
 import logs.LogHelpers._
+
 import scala.language.higherKinds
 
 // C:\ws_ora\src\main\resources\application.conf
 object Main extends App {
 
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
     val isArgsNotEmpty: Boolean = Runtime.global.unsafeRun(checkArgs(args))
     if (isArgsNotEmpty) {
       ZIO(rt(args).unsafeRun(wsApp)).foldM(
         throwable => putStrLn(s"Error: ${throwable.getMessage}") *>
           ZIO.foreach(throwable.getStackTrace) { sTraceRow =>
             putStrLn(s"$sTraceRow")
-          } as 1,
-        _ => putStrLn(s"Success exit of application.") as 0
+          } as ExitCode.failure,
+        _ => putStrLn(s"Success exit of application.") as ExitCode.success
       )
     } else {
-      log.error("[WS-0001] Need input config file as parameter.").provideLayer(envLog) *> Task.succeed(1)
+      log.error("[WS-0001] Need input config file as parameter.").provideLayer(envLog) as ExitCode.failure//Task.succeed(1)
     }
   }
 

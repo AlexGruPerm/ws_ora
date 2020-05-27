@@ -1,12 +1,13 @@
 package env
 
 import data.{Cache, CacheEntity, DictDataRows}
-import zio.logging.Logging.Logging
+import zio.logging.Logging
 import zio.logging.log
-import zio.{Has, Ref, Tagged, UIO, URIO, ZIO, ZLayer, ZManaged, clock, config}
+import zio.{Has, Ref, UIO, URIO, ZIO, ZLayer, ZManaged, clock, config}
 import java.util.concurrent.TimeUnit
 
 import env.EnvContainer.ConfigWsConf
+import izumi.reflect.Tag
 import stat.StatObject.{CacheCleanElm, CacheGetElm, ConnStat, FixedList, WsStat}
 import wsconfiguration.ConfClasses.WsConfig
 import zio.clock.currentTime
@@ -103,7 +104,7 @@ object CacheObject {
 
     }
 
-    def refCache(implicit tag: Tagged[CacheManager.Service]
+    def refCache(implicit tag: Tag[CacheManager.Service]
                 ): ZLayer[ConfigWsConf, Nothing, CacheManager] = {
       ZLayer.fromEffect[
         ConfigWsConf,
