@@ -59,6 +59,7 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-literal"
 ).map(_ % Versions.circeVers)
 
+/*
 assemblyMergeStrategy in assembly := {
   case x if x.contains("io.netty.versions.properties") => MergeStrategy.discard
   case x =>
@@ -69,3 +70,4 @@ assemblyMergeStrategy in assembly := {
 assemblyJarName in assembly :="wsora.jar"
 mainClass in (Compile, packageBin) := Some("application.Main")
 mainClass in (Compile, run) := Some("application.Main")
+*/

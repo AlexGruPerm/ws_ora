@@ -5,8 +5,8 @@ import java.util.concurrent.TimeUnit
 import java.util.NoSuchElementException
 
 import application.CacheLog
-import data.RowType.rows
-import data.{CacheEntity, DbErrorException, DictDataRows, DictRow}
+import data.RowType.{rows}
+import data.{CacheEntity, DbErrorException, DictDataRows, DictRow, Notification}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
@@ -59,6 +59,29 @@ object DbExecutor {
 
     conn.close()
     rows
+  }
+
+  private def getChangedTables(conn: Connection) : Notifications = {
+    conn.setClientInfo("OCSID.ACTION", "NOTIF_QUERY")
+    val call :CallableStatement = conn.prepareCall (s"{ ? = call pkg_test.get_notifications}")
+    call.registerOutParameter (1, OracleTypes.CURSOR);
+    call.execute()
+
+    val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
+
+    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
+      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
+
+    //println(s" columns.size : ${columns.size}")
+
+    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+      columns.map(
+        cname => rs.getString(cname._1)
+      )
+    }.toSet
+
+    conn.close()
+    rows.flatten
   }
 
   private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
@@ -166,6 +189,10 @@ object DbExecutor {
     }
 
     ddr <- Task(DictDataRows(query.name, openConnDur, 123L, 234L, rows))
+    //todo: close connection here like in next method !!!!!!!!!
+    //13.11.2020
+    _ = conn.close()
+    //
   } yield ddr
 
 
@@ -179,10 +206,10 @@ object DbExecutor {
         ucp <- ZIO.access[UcpZLayer](_.get)
         _ <- CacheLog.out("getDataFromDb", false)
         tBeforeOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
-        thisConnection <- ucp.getConnection
-        tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
-        openConnDuration = tAfterOpenConn - tBeforeOpenConn
-        dsCursor = getDictData(tBeforeOpenConn, reqHeader, reqQuery, openConnDuration).refineToOrDie[java.sql.SQLException]
+        //thisConnection <- ucp.getConnection
+        //tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
+        //openConnDuration = tAfterOpenConn - tBeforeOpenConn
+        dsCursor = getDictData(tBeforeOpenConn, reqHeader, reqQuery, 0L/*openConnDuration*/).refineToOrDie[java.sql.SQLException]
         /**
          * in getDictData we can get error like this :
          * ║ java.sql.SQLException: ORA-06503: PL/SQL: Function return without value
@@ -200,7 +227,7 @@ object DbExecutor {
             reqQuery.nocache.forall(_ == 0))
 
         // We absolutely need close it to return to the pool
-        _ = thisConnection.close()
+        //_ = thisConnection.close()
         // If this connection was obtained from a pooled data source, then it won't actually be closed,
         // it'll just be returned to the pool.
       } yield dictRows
@@ -227,5 +254,12 @@ object DbExecutor {
           }
         }
       } yield dictRows
+
+  val getNotifications: ZIO[ZEnvConfLogCache, Throwable, Notifications] = for{
+    ucp <- ZIO.access[UcpZLayer](_.get)
+    conn <- ucp.getConnection
+    nts <- Task(getChangedTables(conn))
+    _ = conn.close()
+  } yield nts
 
 }

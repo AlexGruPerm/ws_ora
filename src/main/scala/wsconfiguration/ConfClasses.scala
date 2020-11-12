@@ -23,7 +23,9 @@ object ConfClasses {
                               InitialPoolSize: Int ,
                               MinPoolSize: Int ,
                               MaxPoolSize: Int,
-                              ConnectionWaitTimeout: Int
+                              ConnectionWaitTimeout: Int,
+                              AbandonConnectionTimeout : Int,
+                              InactiveConnectionTimeout : Int
                             )
 
   final case class StatMonConfig(

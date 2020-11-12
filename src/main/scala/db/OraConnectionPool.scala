@@ -23,6 +23,8 @@ class OraConnectionPool(conf: DbConfig, props: UcpConfig){
   //The maximum pool size property specifies the maximum number of available
   // and borrowed (in use) connections that a pool maintains.
   pds.setMaxPoolSize(props.MaxPoolSize)
+  pds.setAbandonedConnectionTimeout(props.AbandonConnectionTimeout)
+  pds.setInactiveConnectionTimeout(props.InactiveConnectionTimeout)
 
   def closePoolConnections: Unit = (1 to pds.getAvailableConnectionsCount + pds.getBorrowedConnectionsCount)
     .foreach(_ => {

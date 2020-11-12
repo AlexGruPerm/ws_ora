@@ -2,7 +2,264 @@ package testsjsons
 
 object CollectJsons {
 
+
   val reqJsonOra1 =
+    """
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "block",
+      |                  "request_timeout_ms": 8000,
+      |                  "nocache" : 0,
+      |                  "queries": [
+      |{
+      |                                 "name" : "1",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "2",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "3",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "4",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "5",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "6",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "7",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "8",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "9",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "10",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "11",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "12",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "13",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "14",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "15",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 20) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "16",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "17",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "18",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "19",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "20",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "21",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "22",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "23",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "24",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "25",
+      |                                 "qt" : "select",
+      |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               }
+      |                   ]}
+      |""".stripMargin
+
+  val reqJsonOra1_0 =
+    """
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "sync",
+      |                  "request_timeout_ms": 8000,
+      |                  "nocache" : 0,
+      |                  "queries": [
+      |{
+      |                                 "name" : "w682",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 682)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w729",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 729)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w730",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 730)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w731",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 731)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w732",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 732)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w735",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 735)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w740",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 740)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w741",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 741)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w743",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 743)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w775",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 775)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w788",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 788)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w811",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 811)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w816",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 816)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               },
+      |{
+      |                                 "name" : "w820",
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : " msk_arm_lead.pkg_widget.get_widget_data(p_user_id => 37317, p_widget_id => 820)",
+      |                                 "reftables" : ["msk_arm_lead.v_contract_widget_data"]
+      |                               }
+      |                   ]}
+      |""".stripMargin
+
+  val reqJsonOra1_ =
     """
       |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
       |                  "cont_encoding_gzip_enabled" : 1,

@@ -1,14 +1,17 @@
 package application
 
 import java.io.IOException
+import java.sql.{CallableStatement, ResultSet}
 
 import akka.Done
 import akka.actor.ActorSystem
-import data.CacheEntity
+import data.{CacheEntity, DictRow, Notification}
+import db.DbExecutor
 import db.DbExecutor.Notifications
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.{ZEnvConfLogCache, ZEnvLogCache}
+import oracle.jdbc.OracleTypes
 import wsconfiguration.ConfClasses.WsConfig
 import zio.{Schedule, UIO, ZIO}
 import zio.logging.log
@@ -77,26 +80,8 @@ object CacheHelper {
   val cacheValidator:  ZIO[ZEnvConfLogCache, Throwable, Unit] = {
     import zio.duration._
     for {
-      conf <- ZIO.access[Config[WsConfig]](_.get)
-      ucp <- ZIO.access[UcpZLayer](_.get)
-      conn <- ucp.getConnection
-
-      /*orElse
-        PgConnection(conf).sess.retry(Schedule.recurs(3) && Schedule.spaced(2.seconds))*/
-
-      /*
-     _ <- log.info(s"getSchema - DB Listener PID = ${pgsessLs.getSchema}")
-      notifications = scala.Option(pgsessLs.sess.getNotifications).getOrElse(Array[Notification]()) //timeout
-
-      _ <- if (notifications.nonEmpty) {
-        log.trace(s"notifications size = ${notifications.size}")
-      } else {
-        UIO.succeed(())
-      }
-      */
-      notifs :Notifications = Set("schema1.table1","schema2.table2")//.toArray[Notifications]
-      _ = conn.close()
-      _ <- cacheCleaner(notifs/*notifications*/)
+      notifs <- DbExecutor.getNotifications
+      _ <- cacheCleaner(notifs)
     } yield ()
   }
 

@@ -54,7 +54,7 @@ case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, 
 case class Cache(HeartbeatCounter: Int, cacheCreatedTs: Long = System.currentTimeMillis, dictsMap: Map[Int, CacheEntity])
 
 object RowType{
- type rows = List[List[DictRow]]
+  type rows = List[List[DictRow]]
 }
 
 
