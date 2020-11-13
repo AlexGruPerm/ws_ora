@@ -17,7 +17,7 @@ import scala.concurrent.Future
 object EnvContainer {
   type IncConnSrvBind = akka.stream.scaladsl.Source[IncomingConnection, Future[ServerBinding]]
 
-  type ConfigWsConf  = ZConfig/*ConfigDescriptor*/[WsConfig]
+  type ConfigWsConf  = ZConfig[WsConfig]
 
   type ZEnvLog = ZEnv with Logging
   type ZEnvLogCache =  ZEnvLog with ConfigWsConf with CacheManager

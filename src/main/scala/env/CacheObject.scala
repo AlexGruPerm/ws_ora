@@ -1,17 +1,12 @@
 package env
 
-import data.{Cache, CacheEntity, DictDataRows}
-import zio.logging.Logging
-import zio.logging.log
-import zio.{Has, Ref, UIO, URIO, ZIO, ZLayer, ZManaged, clock, config}
-import java.util.concurrent.TimeUnit
-
+import data.{Cache, CacheEntity}
+import zio.{Has, Ref, UIO, ZLayer, ZManaged}
 import env.EnvContainer.ConfigWsConf
 import izumi.reflect.Tag
 import stat.StatObject.{CacheCleanElm, CacheGetElm, ConnStat, FixedList, WsStat}
-import wsconfiguration.ConfClasses.WsConfig
-import zio.clock.currentTime
-//import zio.config.Config
+
+import scala.collection.immutable.IntMap
 
 object CacheObject {
 
@@ -41,7 +36,8 @@ object CacheObject {
       override def getCacheValue: UIO[Cache] = ref.get.map(c => c)
 
       override def get(key: Int): UIO[Option[CacheEntity]] = for {
-        _ <- ref.get.map(_.dictsMap.get(key)).flatMap(r =>
+        ce <- ref.get.map(_.dictsMap.get(key))
+        _ <- UIO(ce).flatMap(r =>
           r.fold(UIO.succeed(()))(
             SomeCe => this.set(key, SomeCe.copy(tslru = System.currentTimeMillis))
           )
@@ -49,8 +45,8 @@ object CacheObject {
         _ <- stat.update(
           wss => WsStat(wss.wsStartTs,wss.currGetCnt+1, wss.statGets, wss.statsCleanElems, wss.statsConn)
         )
-        r <- ref.get.map(_.dictsMap.get(key))
-      } yield r
+        //r <- ref.get.map(_.dictsMap.get(key))
+      } yield ce
 
       override def clearGetCounter :UIO[Unit] = {
         stat.update(
@@ -117,7 +113,7 @@ object CacheObject {
             new FixedList[CacheCleanElm](cfg.getcntHistoryDeep),
             new FixedList[ConnStat](cfg.getcntHistoryDeep)
           )).flatMap(refInitStats =>
-            Ref.make(Cache(0, System.currentTimeMillis, Map.empty)
+            Ref.make(Cache(0, System.currentTimeMillis, IntMap.empty)
             ).map(refInitEmptyCache => new refCache(refInitEmptyCache, refInitStats))
           )
         )

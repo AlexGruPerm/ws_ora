@@ -5,6 +5,8 @@ import io.circe.generic.JsonCodec
 import io.circe.generic.auto._
 import io.circe.syntax._
 
+import scala.collection.immutable.IntMap
+
 
 
 @JsonCodec
@@ -50,8 +52,15 @@ case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, 
  * class for cache entity instance.
  * Summary application cache contains List(CacheEntity)
  * One cache entity ~= one dictionary - DictDataRows
+ * setKeys added for optimization, used in CacheManager.get.
+ * Before getting value by key _.dictsMap.get(key)
+ * we check that key exists in setKeys
 */
-case class Cache(HeartbeatCounter: Int, cacheCreatedTs: Long = System.currentTimeMillis, dictsMap: Map[Int, CacheEntity])
+case class Cache(
+                  HeartbeatCounter: Int,
+                  cacheCreatedTs: Long = System.currentTimeMillis,
+                  dictsMap: IntMap[CacheEntity]
+                )
 
 object RowType{
   type rows = List[List[DictRow]]

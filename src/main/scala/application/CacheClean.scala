@@ -13,8 +13,9 @@ object CacheClean {
     conf <- ZIO.access[ConfigWsConf](_.get)
     cvals <- cache.getCacheValue
     currTs = System.currentTimeMillis
-    entityForClean <- ZIO.filter(cvals.dictsMap)(ce =>
-      UIO(ce._1!=1 && (currTs - ce._2.tslru) > conf.smconf.ltUnusedCache*1000L)
+    clearTime = conf.smconf.ltUnusedCache*1000L
+    entityForClean <- ZIO.filter(cvals.dictsMap.view)(ce =>
+      UIO(ce._1!=1 && (currTs - ce._2.tslru) > clearTime)
     )
     _ <- ZIO.foreach(entityForClean)(
       te => log.info(s" ####### need to clean key : ${te._1} #######")
@@ -24,6 +25,6 @@ object CacheClean {
     /* SIZE from here:
           cv <- cache.getCacheValue cv.dictsMap.size
     */
-    _ <- cache.remove(entityForClean.toSeq.map(tup => tup._1))
+    _ <- cache.remove(entityForClean.toSeq.view.map(tup => tup._1))
   } yield ()
 }
