@@ -48,7 +48,7 @@ object DbExecutor {
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
 
-    println(s"   columns.size : ${columns.size}")
+    //println(s"   columns.size : ${columns.size}")
     //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
 
     val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
@@ -63,24 +63,18 @@ object DbExecutor {
 
   private def getChangedTables(conn: Connection) : Notifications = {
     conn.setClientInfo("OCSID.ACTION", "NOTIF_QUERY")
-
     val call :CallableStatement = conn.prepareCall(s"begin wsora.get_notifications(?); end;")
     call.registerOutParameter (1, OracleTypes.CURSOR);
     call.execute()
-
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
-
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
-
-    println(s"---------------------------------------------- columns.size : ${columns.size}")
-
+    //println(s"---------------------------------------------- columns.size : ${columns.size}")
     val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
       columns.map(
         cname => rs.getString(cname._1)
       )
     }.toSet
-
     conn.close()
     rows.flatten
   }
@@ -94,7 +88,7 @@ object DbExecutor {
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
 
-    println(s"   columns.size : ${columns.size}")
+    //println(s"   columns.size : ${columns.size}")
     //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
 
     val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
@@ -116,7 +110,7 @@ object DbExecutor {
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
 
-    println(s"   columns.size : ${columns.size}")
+    //println(s"   columns.size : ${columns.size}")
     //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
 
     val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
@@ -144,7 +138,7 @@ object DbExecutor {
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
 
-    println(s"   columns.size : ${columns.size}")
+    //println(s"   columns.size : ${columns.size}")
     //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
 
     val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
@@ -259,7 +253,7 @@ object DbExecutor {
   val getNotifications: ZIO[ZEnvConfLogCache, Throwable, Notifications] = for{
     ucp <- ZIO.access[UcpZLayer](_.get)
     conn <- ucp.getConnection
-    _ <- log.trace("getNotifications")
+    //_ <- log.trace("getNotifications")
     nts <- Task(getChangedTables(conn))
     _ = conn.close()
   } yield nts

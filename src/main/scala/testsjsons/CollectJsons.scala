@@ -12,6 +12,23 @@ object CollectJsons {
       |                  "nocache" : 0,
       |                  "queries": [
       |{
+      |                                 "name" : "func_simple_1",
+      |                                 "qt" : "func_simple",
+      |                                 "query" : "wsora.pkg_test.func_simple",
+      |                                 "reftables" : ["wsora.D_DICT_OIV","wsora.D_DICT_TERR","wsora.DAT"]
+      |                               }
+      |                   ]}
+      |""".stripMargin
+
+  val reqJsonOra1_33 =
+    """
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "block",
+      |                  "request_timeout_ms": 8000,
+      |                  "nocache" : 0,
+      |                  "queries": [
+      |{
       |                                 "name" : "1",
       |                                 "qt" : "select",
       |                                 "query" : "select pkg_test.func_wait(slp => 10) from dual",

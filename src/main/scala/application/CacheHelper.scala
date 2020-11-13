@@ -81,7 +81,7 @@ object CacheHelper {
     import zio.duration._
     for {
       notifs <- DbExecutor.getNotifications
-      _ <- log.trace("cacheValidator")
+      //_ <- log.trace("cacheValidator")
       _ <- cacheCleaner(notifs)
     } yield ()
   }
