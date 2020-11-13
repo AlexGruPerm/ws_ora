@@ -1,0 +1,45 @@
+clear;
+
+drop table notification;
+drop sequence s_notification;
+
+create table notification(
+ id          integer not null constraint pk_notification primary key,
+ schema_name varchar2(32) not null,
+ table_name  varchar2(32) not null,
+ change_ts   timestamp default systimestamp not null,
+ used_ts     timestamp,
+ used        integer default 0 not null
+);
+
+create sequence s_notification
+minvalue 1
+maxvalue 9999999999999999999999999999
+start with 1
+increment by 1
+cache 2;
+
+create or replace procedure get_notifications(rc in out sys_refcursor) is
+  used_id_coll type_nt_tbl_n := type_nt_tbl_n();
+begin
+  update notification nt
+  set    nt.used=1,
+         nt.used_ts = systimestamp
+  where  nt.used=0
+  return id bulk collect into used_id_coll;
+  commit;
+  open rc for
+  select nt.schema_name||'.'||nt.table_name as obj_name
+  from   notification nt
+  where  nt.id MEMBER OF used_id_coll;
+end;
+/
+
+begin
+  delete from notification;
+  insert into notification(id,schema_name,table_name) values(s_notification.nextval,'msk_arm_lead','t_data');
+  insert into notification(id,schema_name,table_name) values(s_notification.nextval,'msk_arm_lead','t_keys');
+  insert into notification(id,schema_name,table_name) values(s_notification.nextval,'msk_admin','t_users');
+  commit;
+end;
+/
