@@ -11,7 +11,7 @@ import izumi.reflect.Tag
 import stat.StatObject.{CacheCleanElm, CacheGetElm, ConnStat, FixedList, WsStat}
 import wsconfiguration.ConfClasses.WsConfig
 import zio.clock.currentTime
-import zio.config.Config
+//import zio.config.Config
 
 object CacheObject {
 

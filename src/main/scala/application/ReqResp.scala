@@ -185,7 +185,7 @@ object ReqResp {
                         er.getClass.getName).asJson))
                   },
                   succ => compress(seqResQueries.header.cont_encoding_gzip_enabled,
-                    Printer.spaces2.print(RequestResult("ok", DictsDataAccum(succ)).asJson)
+                    Printer.spaces2.print(RequestResult("ok", DictsDataAccum(succ.toList)).asJson)
                   )
                 )
               } yield str

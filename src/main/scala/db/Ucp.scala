@@ -4,7 +4,8 @@ import java.sql.Connection
 
 import Ucp.UcpZLayer
 import db.Ucp.UcpZLayer.poolCache
-import zio.config.Config
+import zio.config.ZConfig
+//import zio.config.Config
 import env.EnvContainer.{ConfigWsConf, ZenvLogConfCache_}
 import izumi.reflect.Tag
 import wsconfiguration.ConfClasses.WsConfig
@@ -75,7 +76,7 @@ object Ucp {
         val zm: ZManaged[ConfigWsConf, Throwable, poolCache] =
           for {
             // Use a Managed directly when access then environment
-            conf <- ZManaged.access[Config[WsConfig]](_.get)
+            conf <- ZManaged.access[ZConfig[WsConfig]](_.get)
             cp = new OraConnectionPool(conf.dbconf, conf.ucpconf)
             // Convert the effect into a no-release managed
             cpool <- Ref.make(cp).toManaged_

@@ -10,14 +10,14 @@ import zio.logging.Logging
 import ConfigLayerObject.configLayer
 import db.Ucp
 import Ucp.UcpZLayer
-import zio.config.Config
+import zio.config._, ConfigDescriptor._
 
 import scala.concurrent.Future
 
 object EnvContainer {
   type IncConnSrvBind = akka.stream.scaladsl.Source[IncomingConnection, Future[ServerBinding]]
 
-  type ConfigWsConf  = Config[WsConfig]
+  type ConfigWsConf  = ZConfig/*ConfigDescriptor*/[WsConfig]
 
   type ZEnvLog = ZEnv with Logging
   type ZEnvLogCache =  ZEnvLog with ConfigWsConf with CacheManager

@@ -9,13 +9,13 @@ lazy val Versions = new {
   val akkaHttp  = "10.1.10"
   val circeVers = "0.12.3"
   val logbackVers = "1.2.3"
-  val zioVers = "1.0.0-RC20"
-  val zioConf = "1.0.0-RC19"
-  val magnoliaVersion = "1.0.0-RC19"
-  val zioConfTypeSafe = "1.0.0-RC19"
-  val zioLog = "0.3.0"
-  val zioLogSlf4j = "0.3.0"
-  val dbcp2Vers = "2.7.0"
+  val zioVers = "1.0.3"
+  val zioConf = "1.0.0-RC29"
+  val magnoliaVersion = "1.0.0-RC29"
+  val zioConfTypeSafe = "1.0.0-RC29"
+  val zioLog = "0.4.0"
+  val zioLogSlf4j = "0.4.0"
+  val dbcp2Vers = "2.8.0"
 }
 
 scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked")

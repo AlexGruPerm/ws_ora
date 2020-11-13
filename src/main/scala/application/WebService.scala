@@ -16,7 +16,8 @@ import CacheHelper._
 import UcpHelper._
 import StatHelper._
 import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
-import zio.config.Config
+import zio.config.ZConfig
+//import zio.config.Config
 
 object WebService {
 
@@ -58,7 +59,7 @@ object WebService {
   val serverSource: ActorSystem => ZIO[ZEnvConfLogCache, Throwable, IncConnSrvBind] = actorSystem =>
     for {
       _ <- CacheLog.out("serverSource",true)
-      conf <- ZIO.access[Config[WsConfig]](_.get)
+      conf <- ZIO.access[ZConfig[WsConfig]](_.get)
       _ <- log.info(s"Create Source[IncConnSrvBind] with ${conf.api.endpoint}:${conf.api.port}") &&&
            log.info(s" In input config are configured DB SID = ${conf.dbconf.sid} ")
       ss <- Task(Http(actorSystem).bind(interface = conf.api.endpoint, port = conf.api.port))
@@ -118,7 +119,7 @@ object WebService {
       import akka.stream.scaladsl.Source
       for {
         _ <- CacheLog.out("startRequestHandler", true)
-        conf <- ZIO.access[Config[WsConfig]](_.get)
+        conf <- ZIO.access[ZConfig[WsConfig]](_.get)
         rti: Runtime[ZEnvConfLogCache] <- ZIO.runtime[ZEnvConfLogCache]
         ss: Source[Http.IncomingConnection, Future[ServerBinding]] <- serverSource(actorSystem)
         reqHandlerFinal <- RIO(reqHandlerM(conf.dbconf, actorSystem, rti) _)

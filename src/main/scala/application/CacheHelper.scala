@@ -16,7 +16,7 @@ import wsconfiguration.ConfClasses.WsConfig
 import zio.{Schedule, UIO, ZIO}
 import zio.logging.log
 import zio._
-import zio.config.Config
+
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 

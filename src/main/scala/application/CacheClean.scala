@@ -24,6 +24,6 @@ object CacheClean {
     /* SIZE from here:
           cv <- cache.getCacheValue cv.dictsMap.size
     */
-    _ <- cache.remove(entityForClean.map(tup => tup._1))
+    _ <- cache.remove(entityForClean.toSeq.map(tup => tup._1))
   } yield ()
 }

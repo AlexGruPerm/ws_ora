@@ -3,14 +3,15 @@ package logs
 import env.EnvContainer.ZEnvConfLogCache
 import wsconfiguration.ConfClasses.WsConfig
 import zio.ZIO
-import zio.config.Config
+import zio.config.ZConfig
+//import zio.config.Config
 import zio.logging.log
 
 object LogHelpers {
 
    def outputInitalConfig: ZIO[ZEnvConfLogCache, Throwable, Unit] =
     for {
-      cfg <- ZIO.access[Config[WsConfig]](_.get)
+      cfg <- ZIO.access[ZConfig[WsConfig]](_.get)
       _ <- log.info(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ")
       _ <- log.info(" WebService ")
       _ <- log.info(s"    ${cfg.api.endpoint}:${cfg.api.port} ")
