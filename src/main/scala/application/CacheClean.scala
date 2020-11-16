@@ -1,7 +1,10 @@
 package application
 
+import java.util.concurrent.TimeUnit
+
 import env.CacheObject.CacheManager
 import env.EnvContainer.{ConfigWsConf, ZEnvLogCache}
+import zio.clock.Clock
 import zio.logging.log
 import zio.{Task, UIO, ZIO}
 
@@ -12,7 +15,7 @@ object CacheClean {
     cache <- ZIO.access[CacheManager](_.get)
     conf <- ZIO.access[ConfigWsConf](_.get)
     cvals <- cache.getCacheValue
-    currTs = System.currentTimeMillis
+    currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
     clearTime = conf.smconf.ltUnusedCache*1000L
     entityForClean <- ZIO.filter(cvals.dictsMap.view)(ce =>
       UIO(ce._1!=1 && (currTs - ce._2.tslru) > clearTime)

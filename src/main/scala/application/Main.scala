@@ -22,11 +22,13 @@ object Main extends App {
         _ => putStrLn(s"Success exit of application.") as ExitCode.success
       )
     } else {
-      log.error("[WS-0001] Need input config file as parameter.").provideLayer(envLog) as ExitCode.failure//Task.succeed(1)
+      log.error("[WS-0001] Need input config file as parameter.")
+        .provideLayer(envLog) as ExitCode.failure
     }
   }
 
-  private val rt: List[String] => Runtime.Managed[ZEnvConfLogCache] = args => Runtime.unsafeFromLayer(
+  private val rt: List[String] => Runtime.Managed[ZEnvConfLogCache] = args =>
+    Runtime.unsafeFromLayer(
     ZEnv.live >>> env.EnvContainer.ZEnvConfLogCacheLayer(args.head)
   )
 

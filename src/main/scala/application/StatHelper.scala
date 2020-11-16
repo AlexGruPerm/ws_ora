@@ -1,8 +1,11 @@
 package application
 
+import java.util.concurrent.TimeUnit
+
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
 import zio.ZIO
+import zio.clock.Clock
 import zio.logging.log
 
 object StatHelper {
@@ -14,9 +17,10 @@ object StatHelper {
       gc <- cache.getGetCount
       cc <- cache.getCleanCount
       cs <- cache.getConnStat
+      currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
 
       _ <- log.trace(s"~~~~~~~~~~ WS CURRENT STATISTIC ~~~~~~~~~~~~~~~~~")
-      _ <- log.trace(s"uptime : ${(System.currentTimeMillis - startTs)/1000} sec. Get(count) = ${gc.size}")
+      _ <- log.trace(s"uptime : ${(currTs - startTs)/1000} sec. Get(count) = ${gc.size}")
       _ <- cache.clearGetCounter
 
       _ <- ZIO.foreach(gc.toList)(
