@@ -1,6 +1,6 @@
 package env
 
-import zio.{Has, ZEnv, ZLayer, config}
+import zio.{Has, Layer, ZEnv, ZLayer, config}
 import zio.clock.Clock
 import zio.console.Console
 import CacheObject._
@@ -10,7 +10,8 @@ import zio.logging.Logging
 import ConfigLayerObject.configLayer
 import db.Ucp
 import Ucp.UcpZLayer
-import zio.config._, ConfigDescriptor._
+import zio.config._
+import ConfigDescriptor._
 
 import scala.concurrent.Future
 
@@ -18,7 +19,7 @@ object EnvContainer {
   type IncConnSrvBind = akka.stream.scaladsl.Source[IncomingConnection, Future[ServerBinding]]
 
   type ConfigWsConf  = ZConfig[WsConfig]
-
+  type ConfigWsConfClock = ConfigWsConf with Clock
   type ZEnvLog = ZEnv with Logging
   type ZEnvLogCache =  ZEnvLog with ConfigWsConf with CacheManager
   type ZenvLogConfCache_ =  ZEnvLogCache
@@ -32,8 +33,9 @@ object EnvContainer {
   val ZEnvLogLayer:  ZLayer[ZEnv, Nothing, ZEnvLog] = ZEnv.live ++ envLog
 
   def ZEnvConfLogCacheLayer(confFileName: String): ZLayer[ZEnv, Throwable, ZEnvConfLogCache] = {
-    val confLayer = configLayer(confFileName)
-    val combEnvWithoutPool = ZEnv.live ++ envLog ++ confLayer ++ (confLayer >>> CacheManager.refCache)
+    val confLayer: Layer[Throwable, ConfigWsConf] = configLayer(confFileName)
+    val confLayerWithClock : Layer[Throwable, ConfigWsConfClock] = confLayer ++ Clock.live
+    val combEnvWithoutPool = ZEnv.live ++ envLog ++ confLayer ++ (confLayerWithClock >>> CacheManager.refCache)
     combEnvWithoutPool ++ (combEnvWithoutPool >>> Ucp.UcpZLayer.poolCache)
   }
 

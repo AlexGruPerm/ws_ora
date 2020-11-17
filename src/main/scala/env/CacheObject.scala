@@ -1,10 +1,16 @@
 package env
 
+import java.util.concurrent.TimeUnit
+
 import data.{Cache, CacheEntity}
-import zio.{Has, Ref, UIO, ZLayer, ZManaged}
-import env.EnvContainer.ConfigWsConf
+import db.Ucp.UcpZLayer.poolCache
+import zio.{Has, Ref, UIO, ZIO, ZLayer, ZManaged}
+import env.EnvContainer.{ConfigWsConf, ConfigWsConfClock}
 import izumi.reflect.Tag
 import stat.StatObject.{CacheCleanElm, CacheGetElm, ConnStat, FixedList, WsStat}
+import wsconfiguration.ConfClasses.WsConfig
+import zio.clock.Clock
+import zio.config.ZConfig
 
 import scala.collection.immutable.IntMap
 
@@ -27,6 +33,7 @@ object CacheObject {
       def clearGetCounter :UIO[Unit]
       def saveCleanElemsCnt(size: Int) :UIO[Unit]
       def saveConnStats(sizeAvail: Int, sizeBorrow: Int) :UIO[Unit]
+      def clearWholeCache: UIO[Unit]
     }
 
     final class refCache(ref: Ref[Cache], stat: Ref[WsStat]) extends CacheManager.Service {
@@ -45,14 +52,12 @@ object CacheObject {
         _ <- stat.update(
           wss => WsStat(wss.wsStartTs,wss.currGetCnt+1, wss.statGets, wss.statsCleanElems, wss.statsConn)
         )
-        //r <- ref.get.map(_.dictsMap.get(key))
       } yield ce
 
       override def clearGetCounter :UIO[Unit] = {
         stat.update(
           wss => {
             val newElem: FixedList[CacheGetElm] = wss.statGets
-            //val newCleanLm : FixedList[CacheCleanElm] = wss.statsCleanElems
             wss.statGets.append(CacheGetElm(System.currentTimeMillis, wss.currGetCnt))
             WsStat(wss.wsStartTs, 0, newElem, wss.statsCleanElems, wss.statsConn)
           }
@@ -98,25 +103,28 @@ object CacheObject {
 
       override def getConnStat: UIO[FixedList[ConnStat]] = stat.get.map(_.statsConn)
 
+      override def clearWholeCache: UIO[Unit] = UIO.unit
+
     }
 
     def refCache(implicit tag: Tag[CacheManager.Service]
-                ): ZLayer[ConfigWsConf, Nothing, CacheManager] = {
-      ZLayer.fromEffect[
-        ConfigWsConf,
-        Nothing,
-        CacheManager.Service
-      ] {
-        ZManaged.access[ConfigWsConf](_.get.smconf).use(cfg =>
-          Ref.make(WsStat(System.currentTimeMillis, 0,
+                ): ZLayer[ConfigWsConfClock, Nothing, CacheManager] = {
+      {
+        val eff: ZIO[ConfigWsConfClock, Nothing, CacheManager.Service] = for {
+          cfg <- ZIO.access[ConfigWsConf](_.get.smconf)
+          clk <- ZIO.access[Clock](_.get)
+          currTs <- clk.currentTime(TimeUnit.MILLISECONDS)
+          refInitEmptyCache <- Ref.make(
+            WsStat(
+            currTs, 0,
             new FixedList[CacheGetElm](cfg.getcntHistoryDeep),
             new FixedList[CacheCleanElm](cfg.getcntHistoryDeep),
             new FixedList[ConnStat](cfg.getcntHistoryDeep)
           )).flatMap(refInitStats =>
             Ref.make(Cache(0, System.currentTimeMillis, IntMap.empty)
-            ).map(refInitEmptyCache => new refCache(refInitEmptyCache, refInitStats))
-          )
-        )
+            ).map(refInitEmptyCache => new refCache(refInitEmptyCache, refInitStats)))
+        } yield refInitEmptyCache
+        eff.toLayer
       }
     }
 
