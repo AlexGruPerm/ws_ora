@@ -58,7 +58,7 @@ case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, 
 */
 case class Cache(
                   HeartbeatCounter: Int,
-                  cacheCreatedTs: Long = System.currentTimeMillis,
+                  cacheCreatedTs: Long,
                   dictsMap: IntMap[CacheEntity]
                 )
 

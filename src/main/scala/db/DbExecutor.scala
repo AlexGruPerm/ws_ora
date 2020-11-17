@@ -198,25 +198,21 @@ object DbExecutor {
     (reqHeader, reqQuery) =>
       for {
         cache <- ZIO.access[CacheManager](_.get)
-        ucp <- ZIO.access[UcpZLayer](_.get)
         _ <- CacheLog.out("getDataFromDb", false)
         tBeforeOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
-        //thisConnection <- ucp.getConnection
-        //tAfterOpenConn <- clock.currentTime(TimeUnit.MILLISECONDS)
-        //openConnDuration = tAfterOpenConn - tBeforeOpenConn
-        dsCursor = getDictData(tBeforeOpenConn, reqHeader, reqQuery, 0L/*openConnDuration*/).refineToOrDie[java.sql.SQLException]
+        dsCursor = getDictData(tBeforeOpenConn, reqHeader, reqQuery, 0L).refineToOrDie[java.sql.SQLException]
         /**
          * in getDictData we can get error like this :
          * ║ java.sql.SQLException: ORA-06503: PL/SQL: Function return without value
          * ║ ORA-06512: на  "MSK_ARM_LEAD.PKG_ARM_DATA", line 2217
          * And we need produce result json with error description.
         */
-        hashKey: Int = reqHeader.hashCode() + reqQuery.hashCode() //reqQuery.hashCode()  // todo: add user_session
+        hashKey: Int = reqHeader.hashCode() + reqQuery.hashCode()  // todo: add user_session
         dictRows <- dsCursor
-
+        currTs <- clock.currentTime(TimeUnit.MILLISECONDS)
         //We cache results only if nocache key is empty or = 0
         _ <- cache.set(hashKey,
-          CacheEntity(System.currentTimeMillis, System.currentTimeMillis,
+          CacheEntity(currTs, currTs,
             dictRows, reqQuery.reftables.getOrElse(Seq())))
           .when(reqHeader.nocache.forall(_ == 0) &&
             reqQuery.nocache.forall(_ == 0))
