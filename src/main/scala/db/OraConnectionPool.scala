@@ -26,6 +26,16 @@ class OraConnectionPool(conf: DbConfig, props: UcpConfig){
   pds.setAbandonedConnectionTimeout(props.AbandonConnectionTimeout)
   pds.setInactiveConnectionTimeout(props.InactiveConnectionTimeout)
 
+  val jdbcVersion: String = {
+    val conn: java.sql.Connection = pds.getConnection
+    conn.setClientInfo("OCSID.MODULE", "WS")
+    conn.setClientInfo("OCSID.ACTION", "META")
+    val md: java.sql.DatabaseMetaData = conn.getMetaData
+    val jdbcVers: String = md.getJDBCMajorVersion+"."+ md.getJDBCMinorVersion
+    conn.close()
+    jdbcVers
+  }
+
   def closePoolConnections: Unit = (1 to pds.getAvailableConnectionsCount + pds.getBorrowedConnectionsCount)
     .foreach(_ => {
       val c = pds.getConnection()

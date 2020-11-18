@@ -1,18 +1,15 @@
 package db
 
-import java.sql.{CallableStatement, Connection, ResultSet, Types}
+import java.sql.{CallableStatement, Connection, ResultSet}
 import java.util.concurrent.TimeUnit
-import java.util.NoSuchElementException
-
 import application.CacheLog
-import data.RowType.{rows}
-import data.{CacheEntity, DbErrorException, DictDataRows, DictRow, Notification}
+import data.RowType.rows
+import data.{CacheEntity, DbErrorException, DictDataRows, DictRow}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
-import oracle.jdbc.{OracleCallableStatement, OracleTypes}
+import oracle.jdbc.OracleTypes
 import reqdata.{Query, RequestHeader, func_cursor, func_simple, proc_cursor, select}
-import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
 import zio.logging.log
 import zio.{Task, ZIO, clock}
 
@@ -24,7 +21,7 @@ object DbExecutor {
     reqHeader.context match {
       case Some(ctx) => {
         val context = ctx.trim.replaceAll(" +", " ")
-        println(s"SET CONTEXT ${context}")
+        //println(s"SET CONTEXT ${context}")
         conn.createStatement.execute(context)
       }
       case None => ()
@@ -45,7 +42,6 @@ object DbExecutor {
         cname => rs.getString(cname._1)
       )
     }.toList
-    conn.close()
     rows.flatten
   }
 
@@ -69,12 +65,9 @@ object DbExecutor {
     execGlobalCursor(conn, reqHeader)
     val call :CallableStatement = conn.prepareCall (s"{ ? = call ${query.query}}")
     call.registerOutParameter (1, OracleTypes.CURSOR);
-    println("execFunctionCursor  BEFORE call.execute")//todo: remove it
     call.execute()
-    println("execFunctionCursor  AFTER  call.execute")//todo: remove it
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
     val rows = getRowsFromResultSet(rs)
-    conn.close()
     rows
   }
 
@@ -84,7 +77,6 @@ object DbExecutor {
     execGlobalCursor(conn, reqHeader)
     val rs :ResultSet = conn.createStatement.executeQuery(s"select ${query.query} as result from dual")
     val rows = getRowsFromResultSet(rs)
-    conn.close()
     rows
   }
 
@@ -94,7 +86,6 @@ object DbExecutor {
     execGlobalCursor(conn, reqHeader)
     val rs :ResultSet = conn.createStatement.executeQuery(s"${query.query}")
     val rows = getRowsFromResultSet(rs)
-    conn.close()
     rows
   }
 
@@ -107,7 +98,6 @@ object DbExecutor {
     call.execute()
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
     val rows = getRowsFromResultSet(rs)
-    conn.close()
     rows
   }
 
@@ -142,18 +132,22 @@ object DbExecutor {
       case _ => Task(List[Seq[data.DictRow]]())
     }).catchSome{
       case se: java.sql.SQLException =>
-        Task(conn.close()) *>
+        Task {
+          println("~~~~~~~~~~~~~~~~~~~~~ CLOSING CONN WITH SQL Exception ~~~~~~~~~~~~~~~~~~~")
+          conn.setClientInfo("OCSID.ACTION", "SQL_EXCP")
+          conn.close()
+        } *>
         log.error(s"${query.qt} SQLException Code: ${se.getErrorCode} ${se.getLocalizedMessage} ") *>
           Task.fail(new java.sql.SQLException(se))
     }
-
-    _ <- log.error("before ddr ----------------------------------------")
+    /**
+     * The close method closes connections and automatically returns them to the pool.
+     * The close method does not physically remove the connection from the pool.
+    */
     ddr <- Task(DictDataRows(query.name, openConnDur, 123L, 234L, rows))
-    //todo: close connection here like in next method !!!!!!!!!
-    //13.11.2020
-    _ <- log.error("after ddr ----------------------------------------")
-    _ = conn.close()
-    //
+    _ <- Task{if (!conn.isClosed)
+        conn.close()
+    }
   } yield ddr
 
 
@@ -182,11 +176,6 @@ object DbExecutor {
             dictRows, reqQuery.reftables.getOrElse(Seq())))
           .when(reqHeader.nocache.forall(_ == 0) &&
             reqQuery.nocache.forall(_ == 0))
-
-        // We absolutely need close it to return to the pool
-        //_ = thisConnection.close()
-        // If this connection was obtained from a pooled data source, then it won't actually be closed,
-        // it'll just be returned to the pool.
       } yield dictRows
 
 
@@ -216,10 +205,20 @@ object DbExecutor {
 
   val getNotifications: ZIO[ZEnvConfLogCache, Throwable, Notifications] = for{
     ucp <- ZIO.access[UcpZLayer](_.get)
+    //TODO: orElse get from common pool if dedicated connection is crashed.
     conn <- ucp.getConnection
-    //_ <- log.trace("getNotifications")
-    nts <- Task(getChangedTables(conn))
-    _ = conn.close()
+    nts <- Task(getChangedTables(conn)).catchSome {
+      case se: java.sql.SQLException =>
+        Task {
+              conn.setClientInfo("OCSID.ACTION", "FAIL")
+              conn.close()
+            } *>
+          log.error(s"getChangedTables FAIL, SQLException Code: ${se.getErrorCode} ${se.getLocalizedMessage} ") *>
+          Task(List[String]())
+    }
+    _ <- Task{if (!conn.isClosed)
+      conn.close()
+    }
   } yield nts
 
 }

@@ -1,16 +1,11 @@
 package db
 
 import java.sql.Connection
-
-import Ucp.UcpZLayer
-import db.Ucp.UcpZLayer.poolCache
 import zio.config.ZConfig
-//import zio.config.Config
 import env.EnvContainer.{ConfigWsConf, ZenvLogConfCache_}
 import izumi.reflect.Tag
 import wsconfiguration.ConfClasses.WsConfig
-import zio.logging.{Logger, Logging, log}
-import zio.{Has, Ref, Runtime, Task, UIO, URIO, ZIO, ZLayer, ZManaged, config}
+import zio.{Has, Ref, Task, UIO, ZIO, ZLayer, ZManaged}
 
 object Ucp {
 
@@ -27,7 +22,7 @@ object Ucp {
       def getAvailableConnectionsCount: UIO[Int]
       def getBorrowedConnectionsCount: UIO[Int]
       def closeAll: UIO[Unit]
-     // def testQuery(i: Int): UIO[Unit]
+      def getJdbcVersion: UIO[String]
     }
 
     final class poolCache(ref: Ref[OraConnectionPool]) extends UcpZLayer.Service {
@@ -58,6 +53,8 @@ object Ucp {
 
       override def closeAll: UIO[Unit] =
         ref.get.map(_.closePoolConnections)
+
+      override def getJdbcVersion: UIO[String] = ref.get.map(cp => cp.jdbcVersion)
 
     }
 

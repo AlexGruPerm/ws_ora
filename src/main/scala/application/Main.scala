@@ -1,5 +1,6 @@
 package application
 
+import db.Ucp.UcpZLayer
 import zio.{App, ExitCode, Runtime, Task, UIO, ZEnv, ZIO}
 import env.EnvContainer._
 import zio.logging._
@@ -35,6 +36,9 @@ object Main extends App {
   private val wsApp: ZIO[ZEnvConfLogCache, Throwable, Unit] =
     for {
       _ <- log.info("Web service starting")
+      ucp <- ZIO.access[UcpZLayer](_.get)
+      jdbcVers <- ucp.getJdbcVersion
+      _ <- log.info(s"JdbcVersion - $jdbcVers")
       _ <- outputInitalConfig
       res <- WebService.startService
       _ <- log.info("Web service stopping")
