@@ -35,7 +35,7 @@ case class DictDataRows(name: String,
                         connDurMs: Long,
                         execDurMs: Long,
                         fetchDurMs: Long,
-                        rows: List[List[DictRow]])
+                        rows: List[Seq[DictRow]])
 
 @JsonCodec
 case class DictsDataAccum(dicts: List[DictDataRows])
@@ -43,9 +43,8 @@ case class DictsDataAccum(dicts: List[DictDataRows])
 @JsonCodec
 case class RequestResult(status: String,
                          data: DictsDataAccum)
-//todo: maybe add prefix in response, is it from cache or not!?
 
-// sizeBytes: Long,
+//todo: maybe add prefix in response, is it from cache or not!?
 case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, reftables: Seq[String])
 
 /**
@@ -63,7 +62,7 @@ case class Cache(
                 )
 
 object RowType{
-  type rows = List[List[DictRow]]
+  type rows = List[IndexedSeq[DictRow]]
 }
 
 

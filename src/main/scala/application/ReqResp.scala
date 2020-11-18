@@ -254,13 +254,11 @@ object ReqResp {
     }
   } yield f
 
-  val routeGetFavicon: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
-    _ <- putStrLn(s"================= ${request.method} REQUEST ${request.protocol.value} =============")
-    //todo #6: replace full path to using fromResource
-    icoFile <- Task{new File("C:\\ws_fphp\\src\\main\\resources\\favicon.png")}
-    //icoFile <- effectBlocking(Source.fromFile("favicon.png"))
-    resourcesPath <- effectBlocking(getClass.getResource("favicon.png").getPath)
 
+  val routeGetFavicon: HttpRequest => ZIO[ZEnvLogCache, Throwable, HttpResponse] = request => for {
+    _ <- putStrLn(s"================= ${request.method} REQUEST ${request.protocol.value} =============")
+    conf <- ZIO.access[ConfigWsConf](_.get)
+    icoFile <- Task{new File(conf.api.favicon)}
     f <- ZIO.fromFuture { implicit ec =>
       Future.successful(
         HttpResponse(StatusCodes.OK, entity =
@@ -270,7 +268,6 @@ object ReqResp {
         result :HttpResponse => Future(result).map(_ => result)
       }
     }
-
   } yield f
 
   val route404: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {

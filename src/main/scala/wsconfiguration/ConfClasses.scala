@@ -7,7 +7,8 @@ object ConfClasses {
 
   final case class ApiConfig(
                               endpoint: String,
-                              port: Int
+                              port: Int,
+                              favicon: String
                             )
 
   final case class DbConfig(

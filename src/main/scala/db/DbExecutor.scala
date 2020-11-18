@@ -18,7 +18,7 @@ import zio.{Task, ZIO, clock}
 
 object DbExecutor {
 
-  type Notifications = Set[String]
+  type Notifications = List[String]
 
   private def execGlobalCursor(conn: Connection, reqHeader: RequestHeader) :Unit ={
     reqHeader.context match {
@@ -31,37 +31,8 @@ object DbExecutor {
     }
   }
 
-  /**
-   * Optimizationm scrollable r.s.
-   * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
-  */
-  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
-    //conn.setClientInfo("OCSID.ACTION", )
-    execGlobalCursor(conn, reqHeader)
-
-    val call :CallableStatement = conn.prepareCall (s"{ ? = call ${query.query}}")
-    call.registerOutParameter (1, OracleTypes.CURSOR);
-    call.execute()
-
-    val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
-
-    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
-
-    //println(s"   columns.size : ${columns.size}")
-    //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
-
-    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
-      columns.map(
-        cname => DictRow(cname._1, rs.getString(cname._1))
-      )
-    }.toList
-
-    conn.close()
-    rows
-  }
-
   private def getChangedTables(conn: Connection) : Notifications = {
+    conn.setClientInfo("OCSID.MODULE", "WS_NOTIF")
     conn.setClientInfo("OCSID.ACTION", "NOTIF_QUERY")
     val call :CallableStatement = conn.prepareCall(s"begin wsora.get_notifications(?); end;")
     call.registerOutParameter (1, OracleTypes.CURSOR);
@@ -69,84 +40,73 @@ object DbExecutor {
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
-    //println(s"---------------------------------------------- columns.size : ${columns.size}")
     val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
       columns.map(
         cname => rs.getString(cname._1)
       )
-    }.toSet
+    }.toList
     conn.close()
     rows.flatten
   }
 
-  private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
-    //conn.setClientInfo("OCSID.ACTION", )
-    execGlobalCursor(conn, reqHeader)
-
-    val rs :ResultSet = conn.createStatement.executeQuery(s"select ${query.query} as result from dual")
-
-    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
-
-    //println(s"   columns.size : ${columns.size}")
-    //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
-
-    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+  private def getRowsFromResultSet(rs: ResultSet): rows ={
+    val columns: IndexedSeq[(String, String)] = (1 to rs.getMetaData.getColumnCount)
+      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum)))
+    Iterator.continually(rs).takeWhile(_.next()).map { rs =>
       columns.map(
         cname => DictRow(cname._1, rs.getString(cname._1))
       )
     }.toList
+  }
 
+  /**
+   * Optimizationm scrollable r.s.
+   * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
+  */
+  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+    conn.setClientInfo("OCSID.MODULE", "WS_CONN")
+    conn.setClientInfo("OCSID.ACTION", "FUNC_CURSOR")
+    execGlobalCursor(conn, reqHeader)
+    val call :CallableStatement = conn.prepareCall (s"{ ? = call ${query.query}}")
+    call.registerOutParameter (1, OracleTypes.CURSOR);
+    println("execFunctionCursor  BEFORE call.execute")//todo: remove it
+    call.execute()
+    println("execFunctionCursor  AFTER  call.execute")//todo: remove it
+    val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
+    val rows = getRowsFromResultSet(rs)
+    conn.close()
+    rows
+  }
+
+  private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+    conn.setClientInfo("OCSID.MODULE", "WS_CONN")
+    conn.setClientInfo("OCSID.ACTION", "FUNC_SIMPLE")
+    execGlobalCursor(conn, reqHeader)
+    val rs :ResultSet = conn.createStatement.executeQuery(s"select ${query.query} as result from dual")
+    val rows = getRowsFromResultSet(rs)
     conn.close()
     rows
   }
 
   private def execSimpleQuery(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
-    //conn.setClientInfo("OCSID.ACTION", )
+    conn.setClientInfo("OCSID.MODULE", "WS_CONN")
+    conn.setClientInfo("OCSID.ACTION", "SELECT")
     execGlobalCursor(conn, reqHeader)
-
     val rs :ResultSet = conn.createStatement.executeQuery(s"${query.query}")
-
-    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
-
-    //println(s"   columns.size : ${columns.size}")
-    //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
-
-    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
-      columns.map(
-        cname => DictRow(cname._1, rs.getString(cname._1))
-      )
-    }.toList
-
+    val rows = getRowsFromResultSet(rs)
     conn.close()
     rows
   }
 
   private def execProcCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
-    //conn.setClientInfo("OCSID.ACTION", )
+    conn.setClientInfo("OCSID.MODULE", "WS_CONN")
+    conn.setClientInfo("OCSID.ACTION", "PROC_CURSOR")
     execGlobalCursor(conn, reqHeader)
-
-    //val call :CallableStatement = conn.prepareCall(s"begin ${query.query}(?); end;")
-
     val call :CallableStatement = conn.prepareCall(s"begin ${query.query}; end;")
     call.registerOutParameter (1, OracleTypes.CURSOR);
     call.execute()
-
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
-
-    val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
-
-    //println(s"   columns.size : ${columns.size}")
-    //columns.foreach(c => println(s"COLUMN = ${c._1} - ${c._2}" ))
-
-    val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
-      columns.map(
-        cname => DictRow(cname._1, rs.getString(cname._1))
-      )
-    }.toList
-
+    val rows = getRowsFromResultSet(rs)
     conn.close()
     rows
   }
@@ -156,14 +116,13 @@ object DbExecutor {
     _ <- log.info(s"getDictData ${query.name} - ${query.qt.getClass.getTypeName}")
     ucp <- ZIO.access[UcpZLayer](_.get)
     conn <- ucp.getConnection
-
     /**
      *  func_simple
      *  func_cursor
      *  proc_cursor
      *  select
     */
-    rows <- query.qt match {
+    rows <- (query.qt match {
       case _ : func_simple.type  => {
         log.info(">>>>>>>>>>>>> calling execFunctionSimple >>>>>>>>>>>>>>>") *>
           Task(execFunctionSimple(conn, reqHeader, query))
@@ -180,12 +139,19 @@ object DbExecutor {
         log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
           Task(execSimpleQuery(conn, reqHeader, query))
       }
-      case _ => Task(List(List(DictRow("xxx", "yyy"))))
+      case _ => Task(List[Seq[data.DictRow]]())
+    }).catchSome{
+      case se: java.sql.SQLException =>
+        Task(conn.close()) *>
+        log.error(s"${query.qt} SQLException Code: ${se.getErrorCode} ${se.getLocalizedMessage} ") *>
+          Task.fail(new java.sql.SQLException(se))
     }
 
+    _ <- log.error("before ddr ----------------------------------------")
     ddr <- Task(DictDataRows(query.name, openConnDur, 123L, 234L, rows))
     //todo: close connection here like in next method !!!!!!!!!
     //13.11.2020
+    _ <- log.error("after ddr ----------------------------------------")
     _ = conn.close()
     //
   } yield ddr
@@ -237,12 +203,14 @@ object DbExecutor {
           case None => (for {
             db <- getDataFromDb(reqHeader,trqDict)
             _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")
-          } yield db).catchSome{
+          } yield db)
+           .catchSome{
             case err: java.sql.SQLException =>
               ZIO.fail(DbErrorException(err.getMessage, err.getCause, trqDict.name))
               // todo #2: here we can extend DbErrorException with ORA- error code, stack trace an etc.
               //ZIO.fail(DbErrorException(err.getMessage, err.getCause, trqDict.name+" - ErrrorCode : "+err.getErrorCode+" - "+err.getSQLState))
           }
+
         }
       } yield dictRows
 
