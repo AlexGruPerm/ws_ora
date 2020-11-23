@@ -2,7 +2,7 @@ package testsjsons
 
 object CollectJsons {
 
-  val reqJsonOra1 =
+  val reqJsonOra1_last =
     """
       |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
       |                  "cont_encoding_gzip_enabled" : 1,
@@ -27,7 +27,7 @@ object CollectJsons {
       |                   ]}
       """.stripMargin
 
-  val reqJsonOra1_ok =
+  val reqJsonOra1 =
     """
       |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
       |                  "cont_encoding_gzip_enabled" : 1,

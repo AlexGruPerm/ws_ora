@@ -43,3 +43,30 @@ begin
   commit;
 end;
 /
+
+
+
+select sw.SID,sw.EVENT,ss.USERNAME,ss.SCHEMANAME,ss.MACHINE,ss.OSUSER,ss.SQL_ADDRESS,ss.MODULE,ss.ACTION,(sysdate-ss.LOGON_TIME)*24*60*60 as seconds,ss.STATUS,ss.state
+from
+v$session_wait sw
+left join
+v$session ss
+on sw.SID=ss.SID
+left join
+v$sql s
+ON s.ADDRESS=ss.SQL_ADDRESS
+where ss.USERNAME='WSORA' and
+      ss.PROGRAM!='plsqldev.exe'
+order by sw.EVENT
+
+
+
+
+
+
+
+
+
+
+
+

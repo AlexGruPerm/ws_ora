@@ -25,6 +25,9 @@ class OraConnectionPool(conf: DbConfig, props: UcpConfig){
   pds.setMaxPoolSize(props.MaxPoolSize)
   pds.setAbandonedConnectionTimeout(props.AbandonConnectionTimeout)
   pds.setInactiveConnectionTimeout(props.InactiveConnectionTimeout)
+  //todo: check it.
+  //https://docs.oracle.com/en/database/oracle/oracle-database/12.2/jjucp/validating-ucp-connections.html#GUID-A7C850D6-4026-4629-BCFA-9181C29EFBF9
+  pds.setValidateConnectionOnBorrow(true)
 
   val jdbcVersion: String = {
     val conn: java.sql.Connection = pds.getConnection

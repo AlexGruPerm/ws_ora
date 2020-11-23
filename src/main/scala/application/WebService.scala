@@ -6,10 +6,9 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl._
 import akka.http.scaladsl.model.{HttpRequest, _}
 import akka.util.Timeout
-import env.EnvContainer.{IncConnSrvBind, ZEnvConfLogCache, ZEnvLogCache}
+import env.EnvContainer.{IncConnSrvBind, ZEnvConfLogCache}
 import zio.logging.log
 import zio.{Runtime, _}
-
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.language.postfixOps
 import CacheHelper._
@@ -17,7 +16,6 @@ import UcpHelper._
 import StatHelper._
 import wsconfiguration.ConfClasses.{DbConfig, WsConfig}
 import zio.config.ZConfig
-//import zio.config.Config
 
 object WebService {
 
@@ -36,10 +34,8 @@ object WebService {
         for {
           _ <- CacheLog.out("WsServer",true)
           //cfg <- ZIO.access[Config[WsConfig]](_.get)
-
           fiber <- startRequestHandler(actorSystem).forkDaemon
           _ <- fiber.join
-
           cacheCheckerValidator <-
               //todo: temporary commented.
               //validate cache by ref-tables.
@@ -49,7 +45,6 @@ object WebService {
                 ucpMonitor.repeat(Schedule.spaced(5.second)).forkDaemon *>
                 statMonitor.repeat(Schedule.spaced(5.second)).forkDaemon
               //readUserInterrupt(fiber, actorSystem).repeat(Schedule.spaced(1.second)).forkDaemon
-
           _ <- cacheCheckerValidator.join //todo: may be divide on 2 separate forkDeamon
         } yield ()
     )
