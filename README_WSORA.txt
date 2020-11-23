@@ -1,3 +1,7 @@
+
+C:\ws_ora\src\main\resources\application.conf
+
+
 /*
 begin
    for ds in (select 'ALTER SYSTEM KILL SESSION '''||s.SID||','||s.SERIAL#||''' IMMEDIATE' as ks

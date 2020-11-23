@@ -1,41 +1,25 @@
 package application
 
-import com.typesafe.config.ConfigException.IO
 import db.Ucp.UcpZLayer
-import zio.{App, ExitCode, Runtime, Task, UIO, URIO, ZEnv, ZIO}
+import zio.{App, ExitCode, ZEnv, ZIO, ZLayer}
 import env.EnvContainer._
 import zio.logging._
 import zio.console.putStrLn
 import logs.LogHelpers._
-
 import scala.language.higherKinds
 
-// C:\ws_ora\src\main\resources\application.conf
+/**
+ * 1) When run(args: List[String]) method is running it takes first input parameter from args: List[String].
+ *    It must be full path to config file.
+ * 2) And pass it into appLayer thar read it and build full environment (look at ZEnvConfLogCacheLayer),
+ *    create Config,Logging,CacheManager,Connection Pool., that available for the whole application
+ *    with ZLayer.
+ * 3) And further this ZLayer used as input variable in wsApp
+*/
 object Main extends App {
 
-  private def checkArgs(args: List[String]): UIO[Boolean] =
-    if (args.isEmpty)
-      UIO.succeed(false)
-    else
-      UIO.succeed(true)
-
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
-    ZIO.fromOption(args.headOption)
-      .mapError(_ => "[WS-0001] Need input config file as parameter.").foldM(f =>
-      log.error(f).provideLayer(envLog) as ExitCode.failure,
-      inpFirstParam => ZIO(rt(List(inpFirstParam)).unsafeRun(wsApp)).foldM(
-        throwable => putStrLn(s"Error: ${throwable.getMessage}") *>
-          ZIO.foreach(throwable.getStackTrace) { sTraceRow =>
-            putStrLn(s"$sTraceRow")
-          } as ExitCode.failure,
-        _ => putStrLn(s"Success exit of application.") as ExitCode.success
-      ))
-  }
-
-  private val rt: List[String] => Runtime.Managed[ZEnvConfLogCache] = args =>
-    Runtime.unsafeFromLayer(
-    ZEnv.live >>> env.EnvContainer.ZEnvConfLogCacheLayer(args.head)
-  )
+  private val appLayer: String => ZLayer[Any,Throwable,ZEnvConfLogCache] = confFile =>
+    ZEnv.live >>> env.EnvContainer.ZEnvConfLogCacheLayer(confFile)
 
   private val wsApp: ZIO[ZEnvConfLogCache, Throwable, Unit] =
     for {
@@ -48,6 +32,18 @@ object Main extends App {
       _ <- log.info("Web service stopping")
     } yield res
 
-
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
+    ZIO.fromOption(args.headOption)
+      .mapError(_ => "[WS-0001] Need input config file as parameter.").foldM(f =>
+      log.error(f).provideLayer(envLog) as ExitCode.failure,
+      firstParam => wsApp.provideLayer(appLayer(firstParam))
+        .foldM(
+        throwable => putStrLn(s"Error: ${throwable.getMessage}") *>
+          ZIO.foreach(throwable.getStackTrace) { sTraceRow =>
+            putStrLn(s"$sTraceRow")
+          } as ExitCode.failure,
+        _ => putStrLn(s"Success exit of application.") as ExitCode.success
+      ))
+  }
 
 }
