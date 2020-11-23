@@ -1,7 +1,8 @@
 package application
 
+import com.typesafe.config.ConfigException.IO
 import db.Ucp.UcpZLayer
-import zio.{App, ExitCode, Runtime, Task, UIO, ZEnv, ZIO}
+import zio.{App, ExitCode, Runtime, Task, UIO, URIO, ZEnv, ZIO}
 import env.EnvContainer._
 import zio.logging._
 import zio.console.putStrLn
@@ -12,20 +13,23 @@ import scala.language.higherKinds
 // C:\ws_ora\src\main\resources\application.conf
 object Main extends App {
 
+  private def checkArgs(args: List[String]): UIO[Boolean] =
+    if (args.isEmpty)
+      UIO.succeed(false)
+    else
+      UIO.succeed(true)
+
   override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
-    val isArgsNotEmpty: Boolean = Runtime.global.unsafeRun(checkArgs(args))
-    if (isArgsNotEmpty) {
-      ZIO(rt(args).unsafeRun(wsApp)).foldM(
+    ZIO.fromOption(args.headOption)
+      .mapError(_ => "[WS-0001] Need input config file as parameter.").foldM(f =>
+      log.error(f).provideLayer(envLog) as ExitCode.failure,
+      inpFirstParam => ZIO(rt(List(inpFirstParam)).unsafeRun(wsApp)).foldM(
         throwable => putStrLn(s"Error: ${throwable.getMessage}") *>
           ZIO.foreach(throwable.getStackTrace) { sTraceRow =>
             putStrLn(s"$sTraceRow")
           } as ExitCode.failure,
         _ => putStrLn(s"Success exit of application.") as ExitCode.success
-      )
-    } else {
-      log.error("[WS-0001] Need input config file as parameter.")
-        .provideLayer(envLog) as ExitCode.failure
-    }
+      ))
   }
 
   private val rt: List[String] => Runtime.Managed[ZEnvConfLogCache] = args =>
@@ -44,10 +48,6 @@ object Main extends App {
       _ <- log.info("Web service stopping")
     } yield res
 
-  private def checkArgs(args: List[String]): Task[Boolean] =
-    if (args.isEmpty)
-      UIO.succeed(false)
-    else
-      UIO.succeed(true)
+
 
 }
