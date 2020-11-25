@@ -30,5 +30,13 @@ object StatObject {
                      statsCleanElems: FixedList[CacheCleanElm],
                      statsConn: FixedList[ConnStat]
                    )
+  object WsStat{
+    def apply(ts: Long, size: Int): WsStat =
+      WsStat(ts, 0,
+        new FixedList[CacheGetElm](size),
+        new FixedList[CacheCleanElm](size),
+        new FixedList[ConnStat](size)
+      )
+  }
 
 }

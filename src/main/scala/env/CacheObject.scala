@@ -108,13 +108,7 @@ object CacheObject {
         cfg <- ZIO.access[ConfigWsConf](_.get.smconf)
         clk <- ZIO.access[Clock](_.get)
         currTs <- clk.currentTime(TimeUnit.MILLISECONDS)
-        refInitWsStat <- Ref.make(
-          WsStat(
-            currTs, 0,
-            new FixedList[CacheGetElm](cfg.getcntHistoryDeep),
-            new FixedList[CacheCleanElm](cfg.getcntHistoryDeep),
-            new FixedList[ConnStat](cfg.getcntHistoryDeep)
-          ))
+        refInitWsStat <- Ref.make(WsStat(currTs, cfg.getcntHistoryDeep))
         refInitEmpCache <- Ref.make(Cache(0, currTs, IntMap.empty))
         cache = new refCache(refInitEmpCache, refInitWsStat)
       } yield cache
