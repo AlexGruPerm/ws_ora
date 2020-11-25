@@ -104,21 +104,21 @@ object CacheObject {
     }
 
     def refCache(implicit tag: Tag[CacheManager.Service]): ZLayer[ConfigWsConfClock, Nothing, CacheManager] = {
-        val eff: ZIO[ConfigWsConfClock, Nothing, CacheManager.Service] = for {
-          cfg <- ZIO.access[ConfigWsConf](_.get.smconf)
-          clk <- ZIO.access[Clock](_.get)
-          currTs <- clk.currentTime(TimeUnit.MILLISECONDS)
-          refInitEmptyCache <- Ref.make(
-            WsStat(
+      val eff: ZIO[ConfigWsConfClock, Nothing, CacheManager.Service] = for {
+        cfg <- ZIO.access[ConfigWsConf](_.get.smconf)
+        clk <- ZIO.access[Clock](_.get)
+        currTs <- clk.currentTime(TimeUnit.MILLISECONDS)
+        refInitWsStat <- Ref.make(
+          WsStat(
             currTs, 0,
             new FixedList[CacheGetElm](cfg.getcntHistoryDeep),
             new FixedList[CacheCleanElm](cfg.getcntHistoryDeep),
             new FixedList[ConnStat](cfg.getcntHistoryDeep)
-          )).flatMap(refInitStats =>
-            Ref.make(Cache(0, currTs, IntMap.empty)
-            ).map(refInitEmptyCache => new refCache(refInitEmptyCache, refInitStats)))
-        } yield refInitEmptyCache
-        eff.toLayer
+          ))
+        refInitEmpCache <- Ref.make(Cache(0, currTs, IntMap.empty))
+        cache = new refCache(refInitEmpCache, refInitWsStat)
+      } yield cache
+      eff.toLayer
     }
 
   }

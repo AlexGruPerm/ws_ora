@@ -35,8 +35,8 @@ object EnvContainer {
   def ZEnvConfLogCacheLayer(confFileName: String): ZLayer[ZEnv, Throwable, ZEnvConfLogCache] = {
     val confLayer: Layer[Throwable, ConfigWsConf] = configLayer(confFileName)
     val confLayerWithClock : Layer[Throwable, ConfigWsConfClock] = confLayer ++ Clock.live
-    val combEnvWithoutPool = ZEnv.live ++ envLog ++ confLayer ++ (confLayerWithClock >>> CacheManager.refCache)
-    combEnvWithoutPool ++ (combEnvWithoutPool >>> Ucp.UcpZLayer.poolCache)
+    val combEnvWithoutCache = ZEnv.live ++ envLog ++ confLayer ++ (confLayerWithClock >>> CacheManager.refCache)
+    combEnvWithoutCache ++ (combEnvWithoutCache >>> Ucp.UcpZLayer.poolCache)
   }
 
 }
