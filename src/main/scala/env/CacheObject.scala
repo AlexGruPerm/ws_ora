@@ -31,14 +31,14 @@ object CacheObject {
       def clearWholeCache: UIO[Unit]
     }
 
-    final class refCache(ref: Ref[Cache], stat: Ref[WsStat]) extends CacheManager.Service {
+    final case class RefCache(ref: Ref[Cache], stat: Ref[WsStat]) extends CacheManager.Service {
       override def addHeartbeat: UIO[Unit] =
         ref.update(cv => cv.copy(HeartbeatCounter = cv.HeartbeatCounter + 1))
 
       override def getCacheValue: UIO[Cache] = ref.get.map(c => c)
 
       override def get(key: Int): URIO[Clock,Option[CacheEntity]] = for {
-        currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
+        currTs <- currTimeMillis
         ce <- ref.get.map(_.dictsMap.get(key))
         _ <- UIO(ce).flatMap(r =>
           r.fold(UIO.succeed(()))(
@@ -51,7 +51,7 @@ object CacheObject {
       } yield ce
 
       override def clearGetCounter :URIO[Clock, Unit] = for {
-        currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
+        currTs <- currTimeMillis
         _ <- stat.update(
           wss => {
             val newElem: FixedList[CacheGetElm] = wss.statGets
@@ -62,7 +62,7 @@ object CacheObject {
       } yield ()
 
       override def saveCleanElemsCnt(size: Int) :URIO[Clock, Unit] = for {
-        currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
+        currTs <- currTimeMillis
         currCacheElmCnt <- ref.get.map(rc => rc.dictsMap.size)
         _ <- stat.update(
           wss => {
@@ -74,7 +74,7 @@ object CacheObject {
       } yield ()
 
       override def saveConnStats(sizeAvail: Int, sizeBorrow: Int) :URIO[Clock, Unit] = for {
-        currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
+        currTs <- currTimeMillis
         _ <- stat.update(
           wss => {
             val newStatElm : FixedList[ConnStat] = wss.statsConn
@@ -101,6 +101,10 @@ object CacheObject {
 
       override def clearWholeCache: UIO[Unit] = UIO.unit
 
+      private def currTimeMillis :URIO[Clock, Long] = for {
+        currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
+      } yield currTs
+
     }
 
     def refCache(implicit tag: Tag[CacheManager.Service]): ZLayer[ConfigWsConfClock, Nothing, CacheManager] = {
@@ -110,7 +114,7 @@ object CacheObject {
         currTs <- clk.currentTime(TimeUnit.MILLISECONDS)
         refInitWsStat <- Ref.make(WsStat(currTs, cfg.getcntHistoryDeep))
         refInitEmpCache <- Ref.make(Cache(0, currTs, IntMap.empty))
-        cache = new refCache(refInitEmpCache, refInitWsStat)
+        cache = RefCache(refInitEmpCache, refInitWsStat)
       } yield cache
       eff.toLayer
     }
