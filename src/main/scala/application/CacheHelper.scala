@@ -54,7 +54,7 @@ object CacheHelper {
           for {
             _ <- log.trace(s"Notif: $nt")
             _ <- removeFromCacheByRefTable(nt)
-          } yield ()//UIO.succeed(())
+          } yield ()
       }.catchAllCause {
         e => log.error(s" cacheValidator Exception $e")
       }
