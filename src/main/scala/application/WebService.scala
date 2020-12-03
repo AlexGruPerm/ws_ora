@@ -77,7 +77,7 @@ object WebService {
 
     lazy val responseFuture: ZIO[ZEnvConfLogCache, Throwable, HttpResponse] = request
     match {
-      case request@HttpRequest(HttpMethods.POST, Uri.Path("/dicts"), _, _, _) =>
+      case request@HttpRequest(HttpMethods.POST, Uri.Path("/data"), _, _, _) =>
         val reqEntityString: Future[String] = Unmarshal(request.entity).to[String]
         routeQueries(request, dbConfigList, reqEntityString)
       case request@HttpRequest(HttpMethods.GET, _, _, _, _) =>

@@ -54,7 +54,7 @@
                 */
                 var data = JSON.parse(postRqDataJson);
                 console.log(data);
-                    postAjax('/dicts', data, function(data){
+                    postAjax('/data', data, function(data){
                       document.getElementById("rs-json").innerHTML = data;
                     });
               }

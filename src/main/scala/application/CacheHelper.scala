@@ -5,7 +5,7 @@ import java.sql.{CallableStatement, ResultSet}
 
 import akka.Done
 import akka.actor.ActorSystem
-import data.{CacheEntity, DictRow, Notification}
+import data.{CacheEntity, DataCell, Notification}
 import db.DbExecutor
 import db.DbExecutor.Notifications
 import db.Ucp.UcpZLayer

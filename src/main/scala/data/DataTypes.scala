@@ -10,7 +10,7 @@ import scala.collection.immutable.IntMap
 
 
 @JsonCodec
-case class DictRow(name: String, value: String)
+case class DataCell(name: String, value: String)
 
 /**
  * https://github.com/circe/circe/issues/892
@@ -25,9 +25,9 @@ case class DictRow(name: String, value: String)
  *
 */
 
-object DictRow {
-   def apply(name: String, value: String): DictRow =
-    new DictRow(name, if (value==null) "null" else value)
+object DataCell {
+   def apply(name: String, value: String): DataCell =
+    new DataCell(name, if (value==null) "null" else value)
 }
 
 @JsonCodec
@@ -35,7 +35,8 @@ case class DictDataRows(name: String,
                         connDurMs: Long,
                         execDurMs: Long,
                         fetchDurMs: Long,
-                        rows: List[Seq[DictRow]])
+                        rows: List[Map[String,String]]
+                       )
 
 @JsonCodec
 case class DictsDataAccum(dicts: List[DictDataRows])
@@ -62,7 +63,7 @@ case class Cache(
                 )
 
 object RowType{
-  type rows = List[IndexedSeq[DictRow]]
+  type rows = List[Map[String,String]]
 }
 
 

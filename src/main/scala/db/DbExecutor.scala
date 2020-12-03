@@ -2,9 +2,10 @@ package db
 
 import java.sql.{CallableStatement, Connection, ResultSet}
 import java.util.concurrent.TimeUnit
+
 import application.CacheLog
 import data.RowType.rows
-import data.{CacheEntity, DbErrorException, DictDataRows, DictRow}
+import data.{CacheEntity, DataCell, DbErrorException, DictDataRows}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
@@ -45,21 +46,26 @@ object DbExecutor {
     rows.flatten
   }
 
+  private def seqCellToMap(sc: IndexedSeq[DataCell]) : Map[String, String] =
+    sc.foldLeft(Map.empty[String, String]) {
+      case (acc, pr) => acc + (pr.name -> pr.value)
+  }
+
   private def getRowsFromResultSet(rs: ResultSet): rows ={
     val columns: IndexedSeq[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum)))
     Iterator.continually(rs).takeWhile(_.next()).map { rs =>
       columns.map(
-        cname => DictRow(cname._1, rs.getString(cname._1))
+        cname => DataCell(cname._1, rs.getString(cname._1))
       )
-    }.toList
+    }.toList.map(sc => seqCellToMap(sc))
   }
 
   /**
    * Optimizationm scrollable r.s.
    * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
   */
-  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "FUNC_CURSOR")
     execGlobalCursor(conn, reqHeader)
@@ -71,7 +77,7 @@ object DbExecutor {
     rows
   }
 
-  private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+  private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "FUNC_SIMPLE")
     execGlobalCursor(conn, reqHeader)
@@ -80,7 +86,7 @@ object DbExecutor {
     rows
   }
 
-  private def execSimpleQuery(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+  private def execSimpleQuery(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "SELECT")
     execGlobalCursor(conn, reqHeader)
@@ -89,7 +95,7 @@ object DbExecutor {
     rows
   }
 
-  private def execProcCursor(conn: Connection, reqHeader: RequestHeader, query: Query) : rows = {
+  private def execProcCursor(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "PROC_CURSOR")
     execGlobalCursor(conn, reqHeader)
@@ -129,7 +135,7 @@ object DbExecutor {
         log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
           Task(execSimpleQuery(conn, reqHeader, query))
       }
-      case _ => Task(List[Seq[data.DictRow]]())
+      case _ => Task(List[Map[String,String]]())
     }).catchSome{
       case se: java.sql.SQLException =>
         Task {
@@ -150,10 +156,7 @@ object DbExecutor {
     }
   } yield ddr
 
-
-
   import zio.blocking._
-
   private def getDataFromDb: (RequestHeader,Query) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
     (reqHeader, reqQuery) =>
       for {
