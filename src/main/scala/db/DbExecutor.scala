@@ -46,17 +46,19 @@ object DbExecutor {
     rows.flatten
   }
 
-  private def seqCellToMap(sc: IndexedSeq[DataCell]) : Map[String, String] =
-    sc.foldLeft(Map.empty[String, String]) {
+  private def seqCellToMap(sc: IndexedSeq[DataCell]) : Map[String, Option[String]] =
+    sc.foldLeft(Map.empty[String, Option[String]]) {
       case (acc, pr) => acc + (pr.name -> pr.value)
   }
 
   private def getRowsFromResultSet(rs: ResultSet): rows ={
     val columns: IndexedSeq[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum)))
+    //todo: remove this output
+    columns.map(c => println(s"${c._1} - ${c._2}"))
     Iterator.continually(rs).takeWhile(_.next()).map { rs =>
       columns.map(
-        cname => DataCell(cname._1, rs.getString(cname._1))
+        cname => DataCell(cname._1.toLowerCase, Option(rs.getString(cname._1)))
       )
     }.toList.map(sc => seqCellToMap(sc))
   }
@@ -135,7 +137,7 @@ object DbExecutor {
         log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
           Task(execSimpleQuery(conn, reqHeader, query))
       }
-      case _ => Task(List[Map[String,String]]())
+      case _ => Task(List[Map[String,Option[String]]]())
     }).catchSome{
       case se: java.sql.SQLException =>
         Task {
