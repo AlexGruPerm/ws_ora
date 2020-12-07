@@ -2,7 +2,37 @@ package testsjsons
 
 object CollectJsons {
 
+
+
+
+
   val reqJsonOra1 =
+    """
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "block",
+      |                  "request_timeout_ms": 5000,
+      |                  "nocache" : 0,
+      |                  "queries": [
+      |                                {
+      |                                 "name" : "func_get_dashboard",
+      |                                 "nocache" : 0,
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : "msk_arm_lead.pkg_widget.get_dashboard(37317)",
+      |                                 "reftables" : [
+      |                                                "msk_admin.t_users_privs",
+      |                                                "msk_admin.t_privs",
+      |                                                "msk_admin.t_users_roles",
+      |                                                "msk_admin.t_roles_privs",
+      |                                                "msk_admin.t_privs",
+      |                                                "msk_arm_lead.widget_dashboard",
+      |                                                "msk_arm_lead.widget"
+      |                                                ]
+      |                               }
+      |                   ]}
+      """.stripMargin
+
+  val reqJsonOra1____ =
     """
       |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
       |                  "cont_encoding_gzip_enabled" : 1,
@@ -20,7 +50,7 @@ object CollectJsons {
       |                   ]}
       """.stripMargin
 
-  val reqJsonOra1_prv =
+  val reqJsonOra1_wt =
     """
       |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
       |                  "cont_encoding_gzip_enabled" : 1,
@@ -34,13 +64,6 @@ object CollectJsons {
       |                                 "qt" : "func_cursor",
       |                                 "query" : "msk_arm_lead.pkg_widget.get_widget_type",
       |                                 "reftables" : ["msk_arm_lead.widget_meta_property","msk_arm_lead.widget_type"]
-      |                               },
-      |                                {
-      |                                 "name" : "func_get_types",
-      |                                 "nocache" : 0,
-      |                                 "qt" : "func_cursor",
-      |                                 "query" : "WSORA.pkg_test.func_check_types",
-      |                                 "reftables" : []
       |                               }
       |                   ]}
       """.stripMargin

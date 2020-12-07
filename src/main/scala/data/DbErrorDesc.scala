@@ -14,6 +14,7 @@ final case class DbErrorException(private val message: String = "",
 @JsonCodec case class DbErrorDesc(
                                    status: String,
                                    message: String,
+                                   statement: String,
                                    cause: String,
                                    exception: String,
                                    query: String = "")

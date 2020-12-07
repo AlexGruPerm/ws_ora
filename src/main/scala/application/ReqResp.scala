@@ -161,7 +161,8 @@ object ReqResp {
           .foldM(
             checkErr => {
               val failJson =
-                DbErrorDesc("error", checkErr.getMessage, "Cause of exception", checkErr.getClass.getName).asJson
+                DbErrorDesc("fail json error", checkErr.getMessage,"",
+                  "Cause of exception", checkErr.getClass.getName).asJson
               Task(compress(seqResQueries.header.cont_encoding_gzip_enabled, Printer.spaces2.print(failJson)))
             },
             _ =>
@@ -178,10 +179,12 @@ object ReqResp {
                 }.fold(
                   {
                     case dbex: DbErrorException => compress(seqResQueries.header.cont_encoding_gzip_enabled,
-                      Printer.spaces2.print(DbErrorDesc("Caught db error", dbex.getMessage, "routeQueries",
+                      Printer.spaces2.print(DbErrorDesc("db error", dbex.getMessage,
+                        seqResQueries.queries.headOption.fold("empty query")(q => s"[${q.qt}] ${q.query}"),
+                        "routeQueries",
                         dbex.getClass.getName, dbex.query).asJson))
                     case er: Exception => compress(seqResQueries.header.cont_encoding_gzip_enabled,
-                      Printer.spaces2.print(DbErrorDesc("Uncaught error", er.getMessage, "routeQueries",
+                      Printer.spaces2.print(DbErrorDesc("Uncaught error", er.getMessage, "", "routeQueries",
                         er.getClass.getName).asJson))
                   },
                   succ => compress(seqResQueries.header.cont_encoding_gzip_enabled,
