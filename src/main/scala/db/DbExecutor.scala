@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import application.CacheLog
 import data.RowType.rows
-import data.{CacheEntity, DataCell, DbErrorException, DictDataRows}
+import data.{CacheEntity, CellType, DataCell, DbErrorException, DictDataRows, IntType, NumType, StrType}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
@@ -46,25 +46,48 @@ object DbExecutor {
     rows.flatten
   }
 
-  private def seqCellToMap(sc: IndexedSeq[DataCell]) : Map[String, Option[String]] =
-    sc.foldLeft(Map.empty[String, Option[String]]) {
+  private def seqCellToMap(sc: IndexedSeq[DataCell]) : Map[String, Option[CellType]] =
+    sc.foldLeft(Map.empty[String, Option[CellType]]) {
       case (acc, pr) => acc + (pr.name -> pr.value)
+  }
+
+  private def getColumnWsDatatype(ColumnTypeName: String, Precision: Int, Scale: Int) :String = {
+    if (ColumnTypeName == "NUMBER") {
+      if (Precision > 0 && Scale == 0) "INTEGER"
+      else "DOUBLE"
+    } else "STRING"
   }
 
   private def getRowsFromResultSet(rs: ResultSet): rows ={
     val columns: IndexedSeq[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-      .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum)))
-    //todo: remove this output
-    columns.map(c => println(s"${c._1} - ${c._2}"))
+      .map(cnum => (rs.getMetaData.getColumnName(cnum),
+        getColumnWsDatatype(
+          rs.getMetaData.getColumnTypeName(cnum),
+          rs.getMetaData.getPrecision(cnum),
+          rs.getMetaData.getScale(cnum)
+        )))
+
     Iterator.continually(rs).takeWhile(_.next()).map { rs =>
-      columns.map(
-        cname => DataCell(cname._1.toLowerCase, Option(rs.getString(cname._1)))
-      )
+      columns.map {
+        cname =>
+          DataCell(
+            cname._1.toLowerCase,
+            {
+              val cellValue: CellType =
+                cname._2 match {
+                  case "INTEGER" => IntType(rs.getInt(cname._1))
+                  case "DOUBLE" => NumType(rs.getDouble(cname._1))
+                  case _ => StrType(rs.getString(cname._1))
+                }
+              if (rs.wasNull()) None else Some(cellValue)
+            }
+          )
+      }
     }.toList.map(sc => seqCellToMap(sc))
   }
 
   /**
-   * Optimizationm scrollable r.s.
+   * Optimization scrollable r.s.
    * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
   */
   private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
@@ -137,7 +160,7 @@ object DbExecutor {
         log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
           Task(execSimpleQuery(conn, reqHeader, query))
       }
-      case _ => Task(List[Map[String,Option[String]]]())
+      case _ => Task(List[Map[String,Option[CellType]]]())
     }).catchSome{
       case se: java.sql.SQLException =>
         Task {

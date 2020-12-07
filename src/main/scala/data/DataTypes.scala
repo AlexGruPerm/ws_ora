@@ -4,13 +4,29 @@ import akka.util.ByteString
 import io.circe.generic.JsonCodec
 import io.circe.generic.auto._
 import io.circe.syntax._
-
 import scala.collection.immutable.IntMap
 
-
+/**
+ * Encoder[A] instance provides a function that will convert any A to a Json
+ * Decoder[A] takes a Json value to either an exception or an A.
+*/
+import io.circe.{ Decoder, Encoder, HCursor, Json }
 
 @JsonCodec
-case class DataCell(name: String, value: Option[String])
+case class DataCell(name: String, value: Option[CellType])
+
+sealed trait CellType
+  final case class StrType(s: String) extends CellType
+  final case class IntType(i: Int) extends CellType
+  final case class NumType(d :Double) extends CellType
+
+object CellType {
+  implicit val encoder: Encoder[CellType] = Encoder.instance {
+    case StrType(s) => Json.fromString(s)
+    case IntType(i) =>  Json.fromInt(i)
+    case NumType(n) => Json.fromDoubleOrString(n)
+  }
+}
 
 /**
  * https://github.com/circe/circe/issues/892
@@ -25,18 +41,13 @@ case class DataCell(name: String, value: Option[String])
  *
 */
 
-object DataCell {
-   def apply(name: String, value: Option[String]): DataCell =
-    new DataCell(name, if (value.isEmpty/*==null*/) None else value)
-}
-
-@JsonCodec
 case class DictDataRows(name: String,
                         connDurMs: Long,
                         execDurMs: Long,
                         fetchDurMs: Long,
-                        rows: List[Map[String,Option[String]]]
+                        rows: List[Map[String,Option[CellType]]]
                        )
+
 
 @JsonCodec
 case class DictsDataAccum(dicts: List[DictDataRows])
@@ -63,7 +74,7 @@ case class Cache(
                 )
 
 object RowType{
-  type rows = List[Map[String,Option[String]]]
+  type rows = List[Map[String,Option[CellType]]]
 }
 
 
