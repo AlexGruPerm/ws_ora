@@ -57,6 +57,8 @@ object DbExecutor {
       if (Precision > 0 && Scale == 0) "INTEGER"
       else "DOUBLE"
     } else "STRING"
+
+    "STRING"
   }
 
   private def getRowsFromResultSet(rs: ResultSet): rows ={
