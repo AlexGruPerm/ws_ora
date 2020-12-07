@@ -5,6 +5,7 @@ import io.circe.generic.JsonCodec
 import io.circe.generic.auto._
 import io.circe.syntax._
 import scala.collection.immutable.IntMap
+import scala.collection.immutable.ListMap
 
 /**
  * Encoder[A] instance provides a function that will convert any A to a Json
@@ -45,7 +46,7 @@ case class DictDataRows(name: String,
                         connDurMs: Long,
                         execDurMs: Long,
                         fetchDurMs: Long,
-                        rows: List[Map[String,Option[CellType]]]
+                        rows: List[ListMap[String,Option[CellType]]]
                        )
 
 
@@ -74,7 +75,7 @@ case class Cache(
                 )
 
 object RowType{
-  type rows = List[Map[String,Option[CellType]]]
+  type rows = List[ListMap[String,Option[CellType]]]
 }
 
 

@@ -13,6 +13,7 @@ import oracle.jdbc.OracleTypes
 import reqdata.{Query, RequestHeader, func_cursor, func_simple, proc_cursor, select}
 import zio.logging.log
 import zio.{Task, ZIO, clock}
+import scala.collection.immutable.ListMap
 
 object DbExecutor {
 
@@ -46,8 +47,8 @@ object DbExecutor {
     rows.flatten
   }
 
-  private def seqCellToMap(sc: IndexedSeq[DataCell]) : Map[String, Option[CellType]] =
-    sc.foldLeft(Map.empty[String, Option[CellType]]) {
+  private def seqCellToMap(sc: IndexedSeq[DataCell]) : ListMap[String, Option[CellType]] =
+    sc.foldLeft(ListMap.empty[String, Option[CellType]]) {
       case (acc, pr) => acc + (pr.name -> pr.value)
   }
 
@@ -160,7 +161,7 @@ object DbExecutor {
         log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
           Task(execSimpleQuery(conn, reqHeader, query))
       }
-      case _ => Task(List[Map[String,Option[CellType]]]())
+      case _ => Task(List[ListMap[String,Option[CellType]]]())
     }).catchSome{
       case se: java.sql.SQLException =>
         Task {
