@@ -12,7 +12,7 @@ class WsClient {
 public function __construct(string $ws_url,
                             string $user_session,
                             int    $cont_encoding_gzip_enabled = 0,
-                            int    $request_timeout_ms = 5000) {
+                            int    $request_timeout_ms = 6000) {
     $this->ws_url = $ws_url;
     $this->user_session = $user_session;
     $this->cont_encoding_gzip_enabled = $cont_encoding_gzip_enabled;
