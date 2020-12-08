@@ -283,5 +283,14 @@ object ReqResp {
     }
   } yield f
 
+  val checkAlive: HttpRequest => ZIO[ZEnvLog, Throwable, HttpResponse] = request => for {
+    _ <- logRequest(request) //todo: remove it !!!
+    f <- ZIO.fromFuture { implicit ec =>
+      Future.successful(HttpResponse(StatusCodes.OK, entity = ""))
+        .flatMap{
+          result :HttpResponse => Future(result).map(_ => result)
+        }
+    }
+  } yield f
 
 }

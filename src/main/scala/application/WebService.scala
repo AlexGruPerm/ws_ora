@@ -80,6 +80,9 @@ object WebService {
       case request@HttpRequest(HttpMethods.POST, Uri.Path("/data"), _, _, _) =>
         val reqEntityString: Future[String] = Unmarshal(request.entity).to[String]
         routeQueries(request, dbConfigList, reqEntityString)
+
+      case request@HttpRequest(HttpMethods.GET, Uri.Path("/data"), _, _, _) /*if request.headers.contains("User-Agent: page-check/1.0")*/ => checkAlive(request)
+
       case request@HttpRequest(HttpMethods.GET, _, _, _, _) =>
         request match {
           case request@HttpRequest(_, Uri.Path("/debug"), _, _, _) => routeGetDebug(request)
