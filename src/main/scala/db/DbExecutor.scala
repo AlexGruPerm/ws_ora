@@ -52,6 +52,11 @@ object DbExecutor {
       case (acc, pr) => acc + (pr.name -> pr.value)
   }
 
+  /**
+   * todo: add here using new control parameter from request,
+   * smth. like this:
+   * convType : str(default), num
+  */
   private def getColumnWsDatatype(ColumnTypeName: String, Precision: Int, Scale: Int) :String = {
     if (ColumnTypeName == "NUMBER") {
       if (Precision > 0 && Scale == 0) "INTEGER"

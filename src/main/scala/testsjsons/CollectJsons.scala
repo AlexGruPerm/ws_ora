@@ -3,10 +3,57 @@ package testsjsons
 object CollectJsons {
 
 
-
-
-
   val reqJsonOra1 =
+    """
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "block",
+      |                  "request_timeout_ms": 5000,
+      |                  "nocache" : 0,
+      |                  "queries": [
+      |                                {
+      |                                 "name" : "func_priv_1",
+      |                                 "nocache" : 0,
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : "msk_arm_lead.pkg_user_admin.check_user_has_priv(37317,'problem_level_mayor')",
+      |                                 "reftables" : [
+      |                                                "msk_admin.t_roles",
+      |                                                "msk_admin.t_privs",
+      |                                                "msk_admin.t_users_privs",
+      |                                                "msk_admin.t_users_roles",
+      |                                                "msk_admin.t_users_privs"
+      |                                                ]
+      |                               },
+      |                                {
+      |                                 "name" : "func_priv_2",
+      |                                 "nocache" : 0,
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : "msk_arm_lead.pkg_user_admin.check_user_has_priv(37317,'problem_level_deputy')",
+      |                                 "reftables" : [
+      |                                                "msk_admin.t_roles",
+      |                                                "msk_admin.t_privs",
+      |                                                "msk_admin.t_users_privs",
+      |                                                "msk_admin.t_users_roles",
+      |                                                "msk_admin.t_users_privs"
+      |                                                ]
+      |                               },
+      |                                {
+      |                                 "name" : "func_priv_3",
+      |                                 "nocache" : 0,
+      |                                 "qt" : "func_cursor",
+      |                                 "query" : "msk_arm_lead.pkg_user_admin.check_user_has_priv(37317,'see_all')",
+      |                                 "reftables" : [
+      |                                                "msk_admin.t_roles",
+      |                                                "msk_admin.t_privs",
+      |                                                "msk_admin.t_users_privs",
+      |                                                "msk_admin.t_users_roles",
+      |                                                "msk_admin.t_users_privs"
+      |                                                ]
+      |                               }
+      |                   ]}
+      """.stripMargin
+
+  val reqJsonOra1_prv_1 =
     """
       |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
       |                  "cont_encoding_gzip_enabled" : 1,
