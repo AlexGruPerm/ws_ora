@@ -10,6 +10,20 @@ object CollectJsons {
       |                  "thread_pool" : "block",
       |                  "request_timeout_ms": 5000,
       |                  "nocache" : 0,
+      |                  "context" : "begin
+      |                                    MSK_ARM_LEAD.PKG_ARM_STRUCT.SET_CONTEXT_VARIABLES(
+      |                                           p_user_id =>  37317,
+      |                                           p_user_role =>  1,
+      |                                           p_budget =>  15,
+      |                                           p_ddate =>  20201001,
+      |                                           p_appg_date =>  20191001,
+      |                                           p_book =>  9,
+      |                                           p_tab =>  5,
+      |                                           p_slice =>  300,
+      |                                           p_pok =>  null
+      |                                       );
+      |                               end;
+      |                              ",
       |                  "queries": [
       |                                {
       |                                 "name" : "func_priv_1",

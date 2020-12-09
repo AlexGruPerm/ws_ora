@@ -19,24 +19,25 @@ object DbExecutor {
 
   type Notifications = List[String]
 
-  private def execGlobalCursor(conn: Connection, reqHeader: RequestHeader) :Unit ={
+  private def execGlobalCursor(conn: Connection, reqHeader: RequestHeader): Unit = {
     reqHeader.context match {
       case Some(ctx) => {
         val context = ctx.trim.replaceAll(" +", " ")
-        //println(s"SET CONTEXT ${context}")
+        conn.setClientInfo("OCSID.MODULE", "WS_CONN")
+        conn.setClientInfo("OCSID.ACTION", "SET_CONTEXT")
         conn.createStatement.execute(context)
       }
       case None => ()
     }
   }
 
-  private def getChangedTables(conn: Connection) : Notifications = {
+  private def getChangedTables(conn: Connection): Notifications = {
     conn.setClientInfo("OCSID.MODULE", "WS_NOTIF")
     conn.setClientInfo("OCSID.ACTION", "NOTIF_QUERY")
-    val call :CallableStatement = conn.prepareCall(s"begin wsora.get_notifications(?); end;")
-    call.registerOutParameter (1, OracleTypes.CURSOR);
+    val call: CallableStatement = conn.prepareCall(s"begin wsora.get_notifications(?); end;")
+    call.registerOutParameter(1, OracleTypes.CURSOR);
     call.execute()
-    val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
+    val rs: ResultSet = call.getObject(1).asInstanceOf[ResultSet]
     val columns: List[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum), rs.getMetaData.getColumnTypeName(cnum))).toList
     val rows = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
@@ -47,24 +48,33 @@ object DbExecutor {
     rows.flatten
   }
 
-  private def seqCellToMap(sc: IndexedSeq[DataCell]) : ListMap[String, Option[CellType]] =
+  private def seqCellToMap(sc: IndexedSeq[DataCell]): ListMap[String, Option[CellType]] =
     sc.foldLeft(ListMap.empty[String, Option[CellType]]) {
       case (acc, pr) => acc + (pr.name -> pr.value)
-  }
+    }
 
   /**
    * todo: add here using new control parameter from request,
    * smth. like this:
    * convType : str(default), num
-  */
-  private def getColumnWsDatatype(ColumnTypeName: String, Precision: Int, Scale: Int) :String = {
+   */
+  private def getColumnWsDatatype(ColumnTypeName: String, Precision: Int, Scale: Int): String = {
     if (ColumnTypeName == "NUMBER") {
       if (Precision > 0 && Scale == 0) "INTEGER"
       else "DOUBLE"
     } else "STRING"
 
-    "STRING"
+    //"STRING"
   }
+
+  private def isNumInString(s: String) = {
+    if (s!=null && s.nonEmpty)
+      s.replace(".", "").replace(",", "").replace("-","")
+        .forall(_.isDigit)
+    else
+      false
+  }
+
 
   private def getRowsFromResultSet(rs: ResultSet): rows ={
     val columns: IndexedSeq[(String, String)] = (1 to rs.getMetaData.getColumnCount)
@@ -84,8 +94,27 @@ object DbExecutor {
               val cellValue: CellType =
                 cname._2 match {
                   case "INTEGER" => IntType(rs.getInt(cname._1))
-                  case "DOUBLE" => NumType(rs.getDouble(cname._1))
-                  case _ => StrType(rs.getString(cname._1))
+                  case "DOUBLE" => {
+                    val d: Double = rs.getDouble(cname._1)
+                    if (d%1 == 0.0){
+                      IntType(d.toInt)
+                    } else {
+                      NumType(d)
+                    }
+                  }
+                  case _ => {
+                    val s: String = rs.getString(cname._1)
+                    if (isNumInString(s)){
+                      val d: Double = s.replace(",",".").toDouble
+                      if (d%1 == 0.0){
+                        IntType(d.toInt)
+                      } else {
+                        NumType(d)
+                      }
+                    } else {
+                      StrType(s)
+                    }
+                  }
                 }
               if (rs.wasNull()) None else Some(cellValue)
             }
