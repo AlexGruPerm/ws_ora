@@ -11,6 +11,10 @@ case object proc_cursor extends queryType
 case object select extends queryType
 case object unknown extends queryType
 
+sealed trait convType
+case object str extends convType
+case object num extends convType
+
 import io.circe._
 import io.circe.parser._
 object CustDecoders {
@@ -22,17 +26,23 @@ object CustDecoders {
     for {
       name <- h.get[String]("name")
       nc <- h.get[Option[Int]]("nocache")
+      ct <- h.get[Option[String]]("convtype")
       qt <- h.get[Option[String]]("qt")
       query <- h.get[String]("query")
       rt <- h.get[Option[Seq[String]]]("reftables")
-      qtType = qt.getOrElse("unsettled").toLowerCase match {
+      qtType = qt.getOrElse("unsetted").toLowerCase match {
         case "func_simple" => func_simple
         case "func_cursor" => func_cursor
         case "proc_cursor" => proc_cursor
         case "select" => select
         case _ => unknown
       }
-    } yield Query(name,nc,qtType,query,rt)
+      cvType = ct.getOrElse("str").toLowerCase match {
+        case "str" => str
+        case "num" => num
+        case _ => str
+      }
+    } yield Query(name,nc,cvType,qtType,query,rt)
   }
 
   implicit val decoderRequestData: Decoder[RequestData] = Decoder.instance { h =>
@@ -54,8 +64,9 @@ object CustDecoders {
 case class Query(
                  name: String,
                  nocache : Option[Int],
+                 convtype: convType,
                  qt : queryType,
-                 query :String,
+                 query: String,
                  reftables: Option[Seq[String]]
                )
 

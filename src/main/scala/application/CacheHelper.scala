@@ -91,9 +91,11 @@ object CacheHelper {
   /**
    * Is field reftables from Class CacheEntity contain given tableName
    */
-  private def hashKeysForRemove(dictsMaps: Map[Int, CacheEntity], tableName: String) :Seq[Int] =
+  private def hashKeysForRemove(dictsMaps: Map[Int, CacheEntity], tableName: String) :Seq[Int] = {
     dictsMaps.mapValues(v => v.reftables.contains(tableName)).withFilter(_._2).map(_._1).toSeq
-
+    //todo: or v.reftables="*.*" or v.reftables like "*." .....
+    //for Change interpretation of parameter reftables #7
+  }
 
   /**
    * Read user input and raise Exception if not empty.

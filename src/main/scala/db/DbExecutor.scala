@@ -10,9 +10,10 @@ import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
 import oracle.jdbc.OracleTypes
-import reqdata.{Query, RequestHeader, func_cursor, func_simple, proc_cursor, select}
+import reqdata.{Query, RequestHeader, convType, func_cursor, func_simple, num, proc_cursor, select, str}
 import zio.logging.log
 import zio.{Task, ZIO, clock}
+
 import scala.collection.immutable.ListMap
 
 object DbExecutor {
@@ -58,13 +59,15 @@ object DbExecutor {
    * smth. like this:
    * convType : str(default), num
    */
-  private def getColumnWsDatatype(ColumnTypeName: String, Precision: Int, Scale: Int): String = {
-    if (ColumnTypeName == "NUMBER") {
-      if (Precision > 0 && Scale == 0) "INTEGER"
-      else "DOUBLE"
-    } else "STRING"
 
-    //"STRING"
+  private def getColumnWsDatatype(ColumnTypeName: String, Precision: Int, Scale: Int, ct: convType): String = {
+    ct match {
+      case _: num.type => if (ColumnTypeName == "NUMBER") {
+                            if (Precision > 0 && Scale == 0) "INTEGER"
+                            else "DOUBLE"
+                          } else "STRING"
+      case _: str.type => "STRING"
+    }
   }
 
   private def isNumInString(s: String) = {
@@ -76,13 +79,14 @@ object DbExecutor {
   }
 
 
-  private def getRowsFromResultSet(rs: ResultSet): rows ={
+  private def getRowsFromResultSet(rs: ResultSet, ct: convType): rows ={
     val columns: IndexedSeq[(String, String)] = (1 to rs.getMetaData.getColumnCount)
       .map(cnum => (rs.getMetaData.getColumnName(cnum),
         getColumnWsDatatype(
           rs.getMetaData.getColumnTypeName(cnum),
           rs.getMetaData.getPrecision(cnum),
-          rs.getMetaData.getScale(cnum)
+          rs.getMetaData.getScale(cnum),
+          ct
         )))
 
     Iterator.continually(rs).takeWhile(_.next()).map { rs =>
@@ -104,15 +108,19 @@ object DbExecutor {
                   }
                   case _ => {
                     val s: String = rs.getString(cname._1)
-                    if (isNumInString(s)){
-                      val d: Double = s.replace(",",".").toDouble
-                      if (d%1 == 0.0){
-                        IntType(d.toInt)
-                      } else {
-                        NumType(d)
-                      }
-                    } else {
-                      StrType(s)
+                    ct match {
+                      case _: num.type =>
+                          if (isNumInString(s)){
+                            val d: Double = s.replace(",",".").toDouble
+                            if (d%1 == 0.0){
+                              IntType(d.toInt)
+                            } else {
+                              NumType(d)
+                            }
+                          } else {
+                            StrType(s)
+                          }
+                      case _: str.type => StrType(s)
                     }
                   }
                 }
@@ -135,7 +143,7 @@ object DbExecutor {
     call.registerOutParameter (1, OracleTypes.CURSOR);
     call.execute()
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
-    val rows = getRowsFromResultSet(rs)
+    val rows = getRowsFromResultSet(rs,query.convtype)
     rows
   }
 
@@ -144,7 +152,7 @@ object DbExecutor {
     conn.setClientInfo("OCSID.ACTION", "FUNC_SIMPLE")
     execGlobalCursor(conn, reqHeader)
     val rs :ResultSet = conn.createStatement.executeQuery(s"select ${query.query} as result from dual")
-    val rows = getRowsFromResultSet(rs)
+    val rows = getRowsFromResultSet(rs,query.convtype)
     rows
   }
 
@@ -153,7 +161,7 @@ object DbExecutor {
     conn.setClientInfo("OCSID.ACTION", "SELECT")
     execGlobalCursor(conn, reqHeader)
     val rs :ResultSet = conn.createStatement.executeQuery(s"${query.query}")
-    val rows = getRowsFromResultSet(rs)
+    val rows = getRowsFromResultSet(rs,query.convtype)
     rows
   }
 
@@ -165,7 +173,7 @@ object DbExecutor {
     call.registerOutParameter (1, OracleTypes.CURSOR);
     call.execute()
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
-    val rows = getRowsFromResultSet(rs)
+    val rows = getRowsFromResultSet(rs,query.convtype)
     rows
   }
 

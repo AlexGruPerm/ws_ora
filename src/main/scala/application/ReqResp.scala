@@ -57,7 +57,7 @@ object ReqResp {
     _ <- log.trace(s"dicts size = ${rd.queries.size}")
 
     _ <- URIO.foreach(rd.queries) { q =>
-      log.trace(s"query NAME=${q.name}  querytype = ${q.qt} ")
+      log.trace(s"query NAME=${q.name}  querytype = ${q.qt} convtype=${q.convtype}")
       //log.trace(s"query NAME=${q.name}  proc = ${q.proc} func = ${q.func} select = ${q.select} ")
       /*
       for {
@@ -127,14 +127,11 @@ object ReqResp {
             ZIO.some(s"DB [$thisDb] from request not found in config file application.conf")
           }}
         */
-
         checkResult <- if (1 == 0) {
           Task.fail(NoConfigureDbInRequest("Text of error message"))
         } else {
           Task.succeed(())
         }
-
-
       } yield checkResult
 
 
