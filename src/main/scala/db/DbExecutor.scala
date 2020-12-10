@@ -11,6 +11,7 @@ import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache
 import oracle.jdbc.OracleTypes
 import reqdata.{Query, RequestHeader, convType, func_cursor, func_simple, num, proc_cursor, select, str}
+import zio.clock.Clock
 import zio.logging.log
 import zio.{Task, ZIO, clock}
 
@@ -100,11 +101,10 @@ object DbExecutor {
                   case "INTEGER" => IntType(rs.getInt(cname._1))
                   case "DOUBLE" => {
                     val d: Double = rs.getDouble(cname._1)
-                    if (d%1 == 0.0){
+                    if (d%1 == 0.0)
                       IntType(d.toInt)
-                    } else {
+                    else
                       NumType(d)
-                    }
                   }
                   case _ => {
                     val s: String = rs.getString(cname._1)
@@ -112,14 +112,12 @@ object DbExecutor {
                       case _: num.type =>
                           if (isNumInString(s)){
                             val d: Double = s.replace(",",".").toDouble
-                            if (d%1 == 0.0){
+                            if (d%1 == 0.0)
                               IntType(d.toInt)
-                            } else {
+                            else
                               NumType(d)
-                            }
-                          } else {
+                          } else
                             StrType(s)
-                          }
                       case _: str.type => StrType(s)
                     }
                   }
@@ -220,7 +218,8 @@ object DbExecutor {
      * The close method closes connections and automatically returns them to the pool.
      * The close method does not physically remove the connection from the pool.
     */
-    ddr <- Task(DictDataRows(query.name, openConnDur, 123L, 234L, rows))
+    currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
+    ddr <- Task(DictDataRows(query.name, (currTs-beginTs).toFloat/1000, "db", rows))
     _ <- Task{if (!conn.isClosed)
         conn.close()
     }
@@ -246,7 +245,7 @@ object DbExecutor {
         //We cache results only if nocache key is empty or = 0
         _ <- cache.set(hashKey,
           CacheEntity(currTs, currTs,
-            dictRows, reqQuery.reftables.getOrElse(Seq())))
+            dictRows.copy(src = "cache",time = 0L), reqQuery.reftables.getOrElse(Seq())))
           .when(reqHeader.nocache.forall(_ == 0) &&
             reqQuery.nocache.forall(_ == 0))
       } yield dictRows
@@ -255,13 +254,14 @@ object DbExecutor {
   val getDbResultSet: ( Query, RequestHeader) => ZIO[ZEnvConfLogCache, Throwable, DictDataRows] =
     ( trqDict, reqHeader) =>
       for {
+        beginTs <- clock.currentTime(TimeUnit.MILLISECONDS)
         cache <- ZIO.access[CacheManager](_.get)
-        //todo: remove this 2 outputs.
         valFromCache: Option[CacheEntity] <- cache.get(reqHeader.hashCode() + trqDict.hashCode()) //todo: ??!!
+        currTs <- clock.currentTime(TimeUnit.MILLISECONDS)
         dictRows <- valFromCache match {
           case Some(s: CacheEntity) =>
             log.trace(s"--- [VALUE GOT FROM CACHE] [${s.dictDataRows.name}] ---") *>
-              ZIO.succeed(s.dictDataRows)
+              ZIO.succeed(s.dictDataRows.copy(time = (currTs - beginTs).toFloat/1000))
           case None => (for {
             db <- getDataFromDb(reqHeader,trqDict)
             _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")

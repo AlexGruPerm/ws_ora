@@ -43,9 +43,8 @@ object CellType {
 */
 
 case class DictDataRows(name: String,
-                        connDurMs: Long,
-                        execDurMs: Long,
-                        fetchDurMs: Long,
+                        time: Float,
+                        src: String,
                         rows: List[ListMap[String,Option[CellType]]]
                        )
 
