@@ -5,18 +5,18 @@ import java.sql.{CallableStatement, ResultSet}
 
 import akka.Done
 import akka.actor.ActorSystem
-import data.{CacheEntity,  Notification}
+import data.{CacheEntity, Notification, reftable}
 import db.DbExecutor
 import db.DbExecutor.Notifications
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.{ZEnvConfLogCache, ZEnvLogCache}
 import oracle.jdbc.OracleTypes
+import reqdata.CustDecoders.strToReftable
 import wsconfiguration.ConfClasses.WsConfig
 import zio.{Schedule, UIO, ZIO}
 import zio.logging.log
 import zio._
-
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
@@ -34,12 +34,13 @@ object CacheHelper {
   /**
    * Search Entity in Cache by tablename in  and remove it
    */
-  private val removeFromCacheByRefTable: String => ZIO[ZEnvLogCache, Throwable, Unit] = tableName =>
+  private val removeFromCacheByRefTable: reftable => ZIO[ZEnvLogCache, Throwable, Unit] = tableName =>
     for {
       cache <- ZIO.access[CacheManager](_.get)
       cv <- cache.getCacheValue
-      //_ <- log.info(s"All keys = ${cv.dictsMap.keySet}")
-      foundKeys: Seq[Int] = hashKeysForRemove(cv.dictsMap, tableName)
+      //search keys for removing by tableName
+      //foundKeys: Seq[Int] = hashKeysForRemove(cv.dictsMap, tableName)
+      foundKeys <- hashKeysForRemove(cv.dictsMap, tableName)
       _ <- if (foundKeys.nonEmpty)
         log.info(s"keys for removing from cache $foundKeys")
       else
@@ -49,11 +50,11 @@ object CacheHelper {
 
 
   val cacheCleaner: Notifications => ZIO[ZEnvLogCache, Nothing, Unit] = notifications =>
-    for {
+    for {//todo: maybe foreachPar for performance!?
       _ <- ZIO.foreach(notifications) { nt =>
           for {
             _ <- log.trace(s"Notif: $nt")
-            _ <- removeFromCacheByRefTable(nt)
+            _ <- removeFromCacheByRefTable(strToReftable(nt))
           } yield ()
       }.catchAllCause {
         e => log.error(s" cacheValidator Exception $e")
@@ -86,16 +87,25 @@ object CacheHelper {
     } yield ()
   }
 
-
+  /**
+   * used
+   * Check that CacheEntity.reftables depends on tableName.
+   * tableName is a pair "schema_name.table_name"
+   * reftables elements can contains (3 ytpes):
+   * "schema_name.table_name" - exact value
+   * "schema_name.*" - any table in schema
+   * "*.*" - any table in any schema.
+  */
+  private def isCecheEntDependsOnTable(reftables: Seq[reftable], rt: reftable): Boolean =
+    reftables.contains(rt) ||
+      reftables.contains(reftable("*", "*")) ||
+      reftables.contains(reftable(rt.schema,"*"))
 
   /**
    * Is field reftables from Class CacheEntity contain given tableName
    */
-  private def hashKeysForRemove(dictsMaps: Map[Int, CacheEntity], tableName: String) :Seq[Int] = {
-    dictsMaps.mapValues(v => v.reftables.contains(tableName)).withFilter(_._2).map(_._1).toSeq
-    //todo: or v.reftables="*.*" or v.reftables like "*." .....
-    //for Change interpretation of parameter reftables #7
-  }
+  private def hashKeysForRemove(dictsMaps: Map[Int, CacheEntity], rt: reftable) :ZIO[ZEnvLogCache, Nothing, Seq[Int]] =
+    UIO(dictsMaps.mapValues(rts => isCecheEntDependsOnTable(rts.reftables,rt)).withFilter(_._2).map(_._1).toSeq)
 
   /**
    * Read user input and raise Exception if not empty.

@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import application.CacheLog
 import data.RowType.rows
-import data.{CacheEntity, CellType, DataCell, DbErrorException, DictDataRows, IntType, NumType, StrType}
+import data.{CacheEntity, CellType, DataCell, DbErrorException, DictDataRows, IntType, NumType, StrType, reftable}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
 import env.EnvContainer.ZEnvConfLogCache

@@ -14,6 +14,9 @@ import scala.collection.immutable.ListMap
 import io.circe.{ Decoder, Encoder, HCursor, Json }
 
 @JsonCodec
+case class reftable(schema: String, table: String)
+
+@JsonCodec
 case class DataCell(name: String, value: Option[CellType])
 
 sealed trait CellType
@@ -57,7 +60,7 @@ case class RequestResult(status: String,
                          data: DictsDataAccum)
 
 //todo: maybe add prefix in response, is it from cache or not!?
-case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, reftables: Seq[String])
+case class CacheEntity(tscreate: Long, tslru: Long, dictDataRows: DictDataRows, reftables: Seq[reftable])
 
 /**
  * class for cache entity instance.

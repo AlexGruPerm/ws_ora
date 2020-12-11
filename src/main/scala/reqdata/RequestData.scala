@@ -1,5 +1,6 @@
 package reqdata
 
+import data.reftable
 import io.circe.Decoder
 import io.circe.generic.JsonCodec
 
@@ -21,6 +22,15 @@ object CustDecoders {
 
   val r = scala.util.Random
 
+  /** Divide full table name schema.table into pair
+   * and construct reftable
+   * Used in decoderDict
+  */
+  def strToReftable(s: String): reftable = {
+    val arr: Array[String] = s.split("""[.]""")
+    reftable(arr(0),arr(1))
+  }
+
   //todo: refactor c.c. name Dict into Query
   implicit val decoderDict: Decoder[Query] = Decoder.instance { h =>
     for {
@@ -29,7 +39,7 @@ object CustDecoders {
       ct <- h.get[Option[String]]("convtype")
       qt <- h.get[Option[String]]("qt")
       query <- h.get[String]("query")
-      rt <- h.get[Option[Seq[String]]]("reftables")
+      rtStr <- h.get[Option[Seq[String]]]("reftables")
       qtType = qt.getOrElse("unsetted").toLowerCase match {
         case "func_simple" => func_simple
         case "func_cursor" => func_cursor
@@ -42,7 +52,7 @@ object CustDecoders {
         case "num" => num
         case _ => str
       }
-    } yield Query(name,nc,cvType,qtType,query,rt)
+    } yield Query(name,nc,cvType,qtType,query,rtStr.map(s => s.map(st => strToReftable(st))))
   }
 
   implicit val decoderRequestData: Decoder[RequestData] = Decoder.instance { h =>
@@ -67,7 +77,7 @@ case class Query(
                  convtype: convType,
                  qt : queryType,
                  query: String,
-                 reftables: Option[Seq[String]]
+                 reftables: Option[Seq[reftable]]
                )
 
 case class RequestHeader(

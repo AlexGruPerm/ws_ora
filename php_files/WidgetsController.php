@@ -12,13 +12,8 @@ use stdClass;
 use Debugbar;
 use \Illuminate\Support\Collection;
 
-class WidgetsController extends Controller
-{
+class WidgetsController extends Controller{
 
-    /*
-    //http://json.parser.online.fr/
-
-    */
     public function initialState()
     {   // Old code:
         /*
@@ -30,38 +25,27 @@ class WidgetsController extends Controller
         ], $types['status'] ? 200 : 400);
         */
 
-
-        $ws = new WsClient("http://127.0.0.1:8080/data",
-                           "c4ec52189bd51acb95bc2a5082c7c014");
         $query = [
                    "name" => "func_get_widget_type",
                    "nocache" => 0,
                    "qt" => "func_cursor",
+                   "convtype" => "num",
                    "query" => "msk_arm_lead.pkg_widget.get_widget_type",
                    "reftables" => ["msk_arm_lead.widget_meta_property",
                                    "msk_arm_lead.widget_type"]
                  ];
 
         try {
-            $time = microtime(true);
-            $types = $ws->getData($query);
-            Debugbar::addMessage([
-                'source' => 'web service',
-                'result' => $types,
-                'time' =>  number_format(microtime(true) - $time, 4, '.', ',') . ' sec'
-            ], $query["query"]);
-
+            $types = WsClient::instance()->getData($query);
         } catch(\Exception $wsExc){
             Debugbar::error($wsExc->getMessage());
             $types = DB::fetchLower('msk_arm_lead.pkg_widget.get_widget_type');
-            Debugbar::addMessage('Retrieving data from the database.');
         }
 
         return response()->json([
             'types' => $types['data'],
             'widgets' => $this->widgets()->getOriginalContent()
         ], ($types['status'] or $types['status'] == "ok") ? 200 : 400);
-
     }
 
 
@@ -74,13 +58,10 @@ class WidgetsController extends Controller
         */
         //Debugbar::addMessage(json_encode($widgets),'$widgets');
 
-
-        $ws = new WsClient("http://127.0.0.1:8080/data",
-                           "c4ec52189bd51acb95bc2a5082c7c014");
-        //todo: check it - "msk_arm_lead.pkg_widget.get_dashboard({$auth()->id()})"
         $query = [
                     "name" => "func_get_dashboard_2",
                     "nocache" => 0,
+                    "convtype" => "str",
                     "qt" => "func_cursor",
                     "query" => "msk_arm_lead.pkg_widget.get_dashboard(".auth()->id().")",
                     "reftables" => [
@@ -95,14 +76,8 @@ class WidgetsController extends Controller
                  ];
 
         try {
-            $time = microtime(true);
-            $widgets_data = $ws->getData($query)["data"];
+            $widgets_data = WsClient::instance()->getData($query)["data"];
             $widgets = collect($widgets_data);
-            Debugbar::addMessage([
-                'source' => 'web service',
-                'result' => $widgets,
-                'time' =>  number_format(microtime(true) - $time, 4, '.', ',') . ' sec'
-            ], $query["query"]);
         } catch(\Exception $wsExc){
             Debugbar::error($wsExc->getMessage());
             $widgets = DBService::instance()->executeFunction('msk_arm_lead.pkg_widget.get_dashboard', [
@@ -113,7 +88,6 @@ class WidgetsController extends Controller
                 'result' => $widgets,
                 'time' =>  number_format(microtime(true) - $time, 4, '.', ',') . ' sec'
             ], $query["query"]);
-            Debugbar::addMessage('Retrieving data from the database.');
         }
 
 
@@ -129,15 +103,12 @@ class WidgetsController extends Controller
         });
         */
 
-
-
         $widgetsData = $widgets->filter->is_widget->mapWithKeys(function ($widget) {
             try{
-            $ws = new WsClient("http://127.0.0.1:8080/data",
-                               "c4ec52189bd51acb95bc2a5082c7c014");
             $query = [
                         "name" => "func_get_dashboard_2",
                         "nocache" => 0,
+                        "convtype" => "str",
                         "qt" => "func_cursor",
                         "query" => "msk_arm_lead.pkg_widget.get_widget_data(".auth()->id().",".$widget['widget_id'].")",
                         "reftables" => [
@@ -159,21 +130,14 @@ class WidgetsController extends Controller
                                         "msk_admin.v_arm_rp_name_order_ind"
                                        ]
                  ];
-            $time = microtime(true);
-            $widgets_data = $ws->getData($query)["data"];
+            $widgets_data = WsClient::instance()->getData($query)["data"];
             $data = collect($widgets_data);
-            Debugbar::addMessage([
-                'source' => 'web service',
-                'result' => $data,
-                'time' =>  number_format(microtime(true) - $time, 4, '.', ',') . ' sec'
-            ], $query["query"]);
             }catch(\Exception $wsExc){
                 Debugbar::error($wsExc->getMessage());
                 $data = DBService::instance()->executeFunction('msk_arm_lead.pkg_widget.get_widget_data', [
                     'p_user_id' => auth()->id(),
                     'p_widget_id' => $widget['widget_id']
                 ], PDO::PARAM_STMT);
-                 Debugbar::addMessage('Retrieving data from the database.');
             }
 
             return [$widget['widget_id'] => $data];
