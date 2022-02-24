@@ -1,8 +1,11 @@
-name := "WsOra"
+ThisBuild / organization := "com.example"
+ThisBuild / scalaVersion := "2.12.8"
+ThisBuild / version      := "1.0.0"
 
-version := "1.0"
-
-scalaVersion := "2.12.8"
+lazy val root = (project in file("."))
+  .settings(
+    name := "wsora"
+  )
 
 lazy val Versions = new {
   val akka = "2.6.3"
