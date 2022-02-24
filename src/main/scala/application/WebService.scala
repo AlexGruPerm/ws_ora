@@ -43,7 +43,7 @@ object WebService {
               //clean cache
               cacheChecker.repeat(Schedule.spaced(5.second)).forkDaemon *>
                 ucpMonitor.repeat(Schedule.spaced(5.second)).forkDaemon *>
-                statMonitor.repeat(Schedule.spaced(5.second)).forkDaemon
+                statMonitor.repeat(Schedule.spaced(60.second)).forkDaemon //was 5.second
               //readUserInterrupt(fiber, actorSystem).repeat(Schedule.spaced(1.second)).forkDaemon
           _ <- cacheCheckerValidator.join //todo: may be divide on 2 separate forkDeamon
         } yield ()

@@ -2,8 +2,25 @@ package testsjsons
 
 object CollectJsons {
 
-
   val reqJsonOra1 =
+    """
+      |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
+      |                  "cont_encoding_gzip_enabled" : 1,
+      |                  "thread_pool" : "block",
+      |                  "request_timeout_ms": 5000,
+      |                  "nocache" : 0,
+      |                  "queries": [
+      |                                {
+      |                                 "name" : "select1",
+      |                                 "nocache" : 0,
+      |                                 "qt" : "select",
+      |                                 "convtype" : "str",
+      |                                 "query" : "select * from OLAP_DATA_GR  where rownum <= 8000"
+      |                               }
+      |                   ]}
+      """.stripMargin
+
+  val reqJsonOra1_ =
     """
       |               {  "user_session" : "c4ec52189bd51acb95bc2a5082c7c014",
       |                  "cont_encoding_gzip_enabled" : 1,

@@ -2,9 +2,8 @@ package db
 
 import java.sql.{CallableStatement, Connection, ResultSet}
 import java.util.concurrent.TimeUnit
-
 import application.CacheLog
-import data.RowType.rows
+import data.RowType.{rows, rowsTimes}
 import data.{CacheEntity, CellType, DataCell, DbErrorException, DictDataRows, IntType, NumType, StrType, reftable}
 import db.Ucp.UcpZLayer
 import env.CacheObject.CacheManager
@@ -79,10 +78,10 @@ object DbExecutor {
       false
   }
 
-
   private def getRowsFromResultSet(rs: ResultSet, ct: convType): rows ={
+    //val beginTs: Long = System.currentTimeMillis()
     val columns: IndexedSeq[(String, String)] = (1 to rs.getMetaData.getColumnCount)
-      .map(cnum => (rs.getMetaData.getColumnName(cnum),
+      .map(cnum => (rs.getMetaData.getColumnName(cnum).toLowerCase,
         getColumnWsDatatype(
           rs.getMetaData.getColumnTypeName(cnum),
           rs.getMetaData.getPrecision(cnum),
@@ -90,89 +89,133 @@ object DbExecutor {
           ct
         )))
 
-    Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+    /**
+    todo: remove debug output
+    columns.foreach(println)
+    val afterColumns: Long = System.currentTimeMillis()
+    */
+
+    rs.setFetchSize(1000)
+    rs.setFetchDirection(ResultSet.TYPE_FORWARD_ONLY)
+
+    /**
+    todo: remove debug output
+     println(s"FetchSize = ${rs.getFetchSize}")
+     println(s"FetchDirection = ${rs.getFetchDirection}")
+    */
+
+    val rDs = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
       columns.map {
         cname =>
           DataCell(
-            cname._1.toLowerCase,
+            cname._1,
             {
               val cellValue: CellType =
                 cname._2 match {
+                  case _ =>
+                    val s: String = rs.getString(cname._1)
+                    ct match {
+                      case _: num.type =>
+                        if (isNumInString(s)){
+                          val d: Double = s.replace(",",".").toDouble
+                          if (d%1 == 0.0)
+                            IntType(d.toInt)
+                          else
+                            NumType(d)
+                        } else
+                          StrType(s)
+                      case _: str.type => StrType(s)
+                    }
                   case "INTEGER" => IntType(rs.getInt(cname._1))
-                  case "DOUBLE" => {
+                  case "DOUBLE" =>
                     val d: Double = rs.getDouble(cname._1)
                     if (d%1 == 0.0)
                       IntType(d.toInt)
                     else
                       NumType(d)
-                  }
-                  case _ => {
-                    val s: String = rs.getString(cname._1)
-                    ct match {
-                      case _: num.type =>
-                          if (isNumInString(s)){
-                            val d: Double = s.replace(",",".").toDouble
-                            if (d%1 == 0.0)
-                              IntType(d.toInt)
-                            else
-                              NumType(d)
-                          } else
-                            StrType(s)
-                      case _: str.type => StrType(s)
-                    }
-                  }
                 }
               if (rs.wasNull()) None else Some(cellValue)
             }
           )
       }
     }.toList.map(sc => seqCellToMap(sc))
+
+    //val finishTs: Long = System.currentTimeMillis()
+
+    /**
+     * todo: remove debug output
+    println(s"Fetched rows : ${rDs.size}")
+    println("Columns types(sec): " + TimeUnit.MILLISECONDS.toSeconds(afterColumns-beginTs))
+    println("Fetching rows(sec): " + TimeUnit.MILLISECONDS.toSeconds(finishTs-afterColumns))
+    rDs.head.foreach(r => println(s" Cell meta - ${r._1} - ${r._2}"))
+    */
+    rDs
   }
 
   /**
    * Optimization scrollable r.s.
    * https://www.informit.com/articles/article.aspx?p=26251&seqNum=7
   */
-  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
+  private def execFunctionCursor(conn: Connection, reqHeader: RequestHeader, query: Query): rowsTimes = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "FUNC_CURSOR")
     execGlobalCursor(conn, reqHeader)
+    val beforeExecTs: Long = System.currentTimeMillis()
     val call :CallableStatement = conn.prepareCall (s"{ ? = call ${query.query}}")
     call.registerOutParameter (1, OracleTypes.CURSOR);
     call.execute()
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
+    val afterExecTs: Long = System.currentTimeMillis()
     val rows = getRowsFromResultSet(rs,query.convtype)
-    rows
+    val afterFetchTs: Long = System.currentTimeMillis()
+    (TimeUnit.MILLISECONDS.toSeconds(afterExecTs-beforeExecTs),
+      TimeUnit.MILLISECONDS.toSeconds(afterFetchTs-afterExecTs),
+      rows)
   }
 
-  private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
+  private def execFunctionSimple(conn: Connection, reqHeader: RequestHeader, query: Query): rowsTimes = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "FUNC_SIMPLE")
     execGlobalCursor(conn, reqHeader)
+    val beforeExecTs: Long = System.currentTimeMillis()
     val rs :ResultSet = conn.createStatement.executeQuery(s"select ${query.query} as result from dual")
+    val afterExecTs: Long = System.currentTimeMillis()
     val rows = getRowsFromResultSet(rs,query.convtype)
-    rows
+    val afterFetchTs: Long = System.currentTimeMillis()
+    (TimeUnit.MILLISECONDS.toSeconds(afterExecTs-beforeExecTs),
+      TimeUnit.MILLISECONDS.toSeconds(afterFetchTs-afterExecTs),
+      rows)
   }
 
-  private def execSimpleQuery(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
+  private def execSimpleQuery(conn: Connection, reqHeader: RequestHeader, query: Query): rowsTimes = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "SELECT")
     execGlobalCursor(conn, reqHeader)
+    val beforeExecTs: Long = System.currentTimeMillis()
     val rs :ResultSet = conn.createStatement.executeQuery(s"${query.query}")
+    val afterExecTs: Long = System.currentTimeMillis()
     val rows = getRowsFromResultSet(rs,query.convtype)
-    rows
+    val afterFetchTs: Long = System.currentTimeMillis()
+    (TimeUnit.MILLISECONDS.toSeconds(afterExecTs-beforeExecTs),
+      TimeUnit.MILLISECONDS.toSeconds(afterFetchTs-afterExecTs),
+      rows)
   }
 
-  private def execProcCursor(conn: Connection, reqHeader: RequestHeader, query: Query): rows = {
+  private def execProcCursor(conn: Connection, reqHeader: RequestHeader, query: Query): rowsTimes = {
     conn.setClientInfo("OCSID.MODULE", "WS_CONN")
     conn.setClientInfo("OCSID.ACTION", "PROC_CURSOR")
     execGlobalCursor(conn, reqHeader)
+    val beforeExecTs: Long = System.currentTimeMillis()
     val call :CallableStatement = conn.prepareCall(s"begin ${query.query}; end;")
     call.registerOutParameter (1, OracleTypes.CURSOR);
     call.execute()
     val rs :ResultSet = call.getObject(1).asInstanceOf[ResultSet]
+    val afterExecTs: Long = System.currentTimeMillis()
     val rows = getRowsFromResultSet(rs,query.convtype)
-    rows
+    val afterFetchTs: Long = System.currentTimeMillis()
+    (TimeUnit.MILLISECONDS.toSeconds(afterExecTs-beforeExecTs),
+      TimeUnit.MILLISECONDS.toSeconds(afterFetchTs-afterExecTs),
+      rows)
   }
 
   private def getDictData(beginTs: Long, reqHeader: RequestHeader, query: Query, openConnDur: Long):
@@ -203,7 +246,7 @@ object DbExecutor {
         log.info(">>>>>>>>>>>>> calling execSimpleQuery >>>>>>>>>>>>>>>") *>
           Task(execSimpleQuery(conn, reqHeader, query))
       }
-      case _ => Task(List[ListMap[String,Option[CellType]]]())
+      case _ => Task((0F,0F,List[ListMap[String,Option[CellType]]]()))
     }).catchSome{
       case se: java.sql.SQLException =>
         Task {
@@ -219,7 +262,7 @@ object DbExecutor {
      * The close method does not physically remove the connection from the pool.
     */
     currTs <- ZIO.accessM[Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
-    ddr <- Task(DictDataRows(query.name, (currTs-beginTs).toFloat/1000, "db", rows))
+    ddr <- Task(DictDataRows(query.name, (currTs-beginTs).toFloat/1000, rows._1, rows._2, "db", rows._3))
     _ <- Task{if (!conn.isClosed)
         conn.close()
     }
@@ -245,7 +288,7 @@ object DbExecutor {
         //We cache results only if nocache key is empty or = 0
         _ <- cache.set(hashKey,
           CacheEntity(currTs, currTs,
-            dictRows.copy(src = "cache",time = 0L), reqQuery.reftables.getOrElse(Seq())))
+            dictRows.copy(src = "cache",timeFull = 0L), reqQuery.reftables.getOrElse(Seq())))
           .when(reqHeader.nocache.forall(_ == 0) &&
             reqQuery.nocache.forall(_ == 0))
       } yield dictRows
@@ -261,10 +304,10 @@ object DbExecutor {
         dictRows <- valFromCache match {
           case Some(s: CacheEntity) =>
             log.trace(s"--- [VALUE GOT FROM CACHE] [${s.dictDataRows.name}] ---") *>
-              ZIO.succeed(s.dictDataRows.copy(time = (currTs - beginTs).toFloat/1000))
+              ZIO.succeed(s.dictDataRows.copy(timeFull = (currTs - beginTs).toFloat/1000))
           case None => (for {
             db <- getDataFromDb(reqHeader,trqDict)
-            _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ---")
+            _ <- log.trace(s"--- [VALUE GOT FROM DB] [${db.name}] ftime = ${db.timeFull} exec = ${db.timeExec} fetch = ${db.timeFetch} sec. ")
           } yield db)
            .catchSome{
             case err: java.sql.SQLException =>
@@ -272,7 +315,6 @@ object DbExecutor {
               // todo #2: here we can extend DbErrorException with ORA- error code, stack trace an etc.
               //ZIO.fail(DbErrorException(err.getMessage, err.getCause, trqDict.name+" - ErrrorCode : "+err.getErrorCode+" - "+err.getSQLState))
           }
-
         }
       } yield dictRows
 

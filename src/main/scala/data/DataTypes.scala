@@ -27,7 +27,7 @@ sealed trait CellType
 object CellType {
   implicit val encoder: Encoder[CellType] = Encoder.instance {
     case StrType(s) => Json.fromString(s)
-    case IntType(i) =>  Json.fromInt(i)
+    case IntType(i) => Json.fromInt(i)
     case NumType(n) => Json.fromDoubleOrString(n)
   }
 }
@@ -46,11 +46,11 @@ object CellType {
 */
 
 case class DictDataRows(name: String,
-                        time: Float,
+                        timeFull: Float,
+                        timeExec: Float,
+                        timeFetch: Float,
                         src: String,
-                        rows: List[ListMap[String,Option[CellType]]]
-                       )
-
+                        rows: List[ListMap[String,Option[CellType]]])
 
 @JsonCodec
 case class DictsDataAccum(dicts: List[DictDataRows])
@@ -77,7 +77,10 @@ case class Cache(
                 )
 
 object RowType{
+  type ExecTime = Float
+  type FetchTime = Float
   type rows = List[ListMap[String,Option[CellType]]]
+  type rowsTimes = (ExecTime,FetchTime,List[ListMap[String,Option[CellType]]])
 }
 
 
