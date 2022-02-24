@@ -59,14 +59,13 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-literal"
 ).map(_ % Versions.circeVers)
 
-
-assemblyMergeStrategy in assembly := {
+assembly / assemblyMergeStrategy := {
   case x if x.contains("io.netty.versions.properties") => MergeStrategy.discard
-  case x =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
-    oldStrategy(x)
+  case PathList("module-info.class") => MergeStrategy.discard
+  case x if x.endsWith("/module-info.class") => MergeStrategy.discard
+  case PathList("META-INF", xs @ _*)         => MergeStrategy.discard
+  case "reference.conf" => MergeStrategy.concat
+  case _ => MergeStrategy.first
 }
 
-assemblyJarName in assembly :="wsora.jar"
-mainClass in (Compile, packageBin) := Some("application.Main")
-mainClass in (Compile, run) := Some("application.Main")
+assembly / assemblyJarName := "wsora.jar"
