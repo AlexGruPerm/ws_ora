@@ -112,13 +112,21 @@ object DbExecutor {
             {
               val cellValue: CellType =
                 cname._2 match {
+                  case "INTEGER" => IntType(rs.getInt(cname._1))
+                  case "DOUBLE" => {
+                    val d: Double = rs.getDouble(cname._1)
+                    if (d % 1 == 0.0)
+                      IntType(d.toInt)
+                    else
+                      NumType(d)
+                  }
                   case _ =>
                     val s: String = rs.getString(cname._1)
                     ct match {
                       case _: num.type =>
-                        if (isNumInString(s)){
-                          val d: Double = s.replace(",",".").toDouble
-                          if (d%1 == 0.0)
+                        if (isNumInString(s)) {
+                          val d: Double = s.replace(",", ".").toDouble
+                          if (d % 1 == 0.0)
                             IntType(d.toInt)
                           else
                             NumType(d)
@@ -126,13 +134,6 @@ object DbExecutor {
                           StrType(s)
                       case _: str.type => StrType(s)
                     }
-                  case "INTEGER" => IntType(rs.getInt(cname._1))
-                  case "DOUBLE" =>
-                    val d: Double = rs.getDouble(cname._1)
-                    if (d%1 == 0.0)
-                      IntType(d.toInt)
-                    else
-                      NumType(d)
                 }
               if (rs.wasNull()) None else Some(cellValue)
             }

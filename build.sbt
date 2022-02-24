@@ -66,7 +66,8 @@ assemblyMergeStrategy in assembly := {
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
 }
-
+*/
+/*
 assemblyJarName in assembly :="wsora.jar"
 mainClass in (Compile, packageBin) := Some("application.Main")
 mainClass in (Compile, run) := Some("application.Main")
